@@ -4,17 +4,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VehicleBookingCard } from "@/components/fleet/VehicleBookingCard";
 import { VehicleDetailHero } from "@/components/fleet/VehicleDetailHero";
 import { VehicleSpecs } from "@/components/fleet/VehicleSpecs";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { vehicles, type Vehicle } from "@/data/vehicles";
+import { vehicles as seedVehicles, type Vehicle } from "@/data/vehicles";
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
+  fleetVehicles?: Vehicle[];
 }
 
 const categoryLabels: Record<Vehicle["category"], string> = {
@@ -33,7 +34,11 @@ function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
     electric: "/images/vehicles/hero-electric-placeholder.svg",
     convertible: "/images/vehicles/hero-sport-placeholder.svg",
   };
-  const image = vehicle.imagePlaceholder ?? fallback[vehicle.category];
+  const [imageFailed, setImageFailed] = useState(false);
+  const image =
+    imageFailed || !vehicle.imagePlaceholder
+      ? fallback[vehicle.category]
+      : vehicle.imagePlaceholder;
 
   return (
     <Link
@@ -48,6 +53,7 @@ function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
           fill
           loading="lazy"
           sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw"
+          onError={() => setImageFailed(true)}
           src={image}
           unoptimized
         />
@@ -63,14 +69,17 @@ function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
   );
 }
 
-export function VehicleDetail({ vehicle }: VehicleDetailProps) {
+export function VehicleDetail({
+  vehicle,
+  fleetVehicles = seedVehicles,
+}: VehicleDetailProps) {
   const pageRef = useRef<HTMLElement>(null);
   const relatedVehicles = [
-    ...vehicles.filter(
+    ...fleetVehicles.filter(
       (candidate) =>
         candidate.id !== vehicle.id && candidate.category === vehicle.category,
     ),
-    ...vehicles.filter(
+    ...fleetVehicles.filter(
       (candidate) =>
         candidate.id !== vehicle.id && candidate.category !== vehicle.category,
     ),

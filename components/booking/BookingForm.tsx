@@ -12,7 +12,12 @@ import {
   isValidBookingDate,
   type DriverPreference,
 } from "@/lib/booking";
-import { vehicles } from "@/data/vehicles";
+import { vehicles as seedVehicles } from "@/data/vehicles";
+import {
+  adminRepositories,
+  createRecordId,
+} from "@/lib/admin-data";
+import { useAdminCollection } from "@/lib/use-admin-collection";
 
 export interface BookingContext {
   vehicle?: string;
@@ -72,10 +77,19 @@ export function BookingForm({ initialContext }: BookingFormProps) {
   const [errors, setErrors] = useState<BookingErrors>({});
   const [vehicleError, setVehicleError] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [requestReceived, setRequestReceived] = useState(false);
+  const { items: vehicles, error: vehiclesError } = useAdminCollection(
+    adminRepositories.vehicles,
+    seedVehicles,
+  );
 
   const selectedVehicle = useMemo(
     () => vehicles.find((vehicle) => vehicle.slug === vehicleSlug) ?? null,
-    [vehicleSlug],
+    [vehicleSlug, vehicles],
   );
 
   const rentalDays = useMemo(
@@ -191,12 +205,52 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     event.preventDefault();
     if (!validate()) return;
     setIsReviewing(true);
+    setRequestError("");
+    setRequestReceived(false);
     window.scrollTo({
       top: 0,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "auto"
         : "smooth",
     });
+  }
+
+  function submitRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRequestError("");
+    if (!selectedVehicle) {
+      setRequestError("Choose a vehicle before sending your request.");
+      return;
+    }
+    if (vehiclesError) {
+      setRequestError(vehiclesError);
+      return;
+    }
+    try {
+      adminRepositories.bookings.save({
+        id: createRecordId("booking"),
+        customerName: customerName.trim(),
+        email: customerEmail.trim(),
+        ...(customerPhone.trim() ? { phone: customerPhone.trim() } : {}),
+        vehicleId: selectedVehicle.id,
+        vehicleName: selectedVehicle.name,
+        vehicleSlug: selectedVehicle.slug,
+        pickupLocation: pickup.trim(),
+        returnLocation: returnLocation.trim(),
+        pickupDate: startDate,
+        returnDate: endDate,
+        driverPreference: driver,
+        submittedAt: new Date().toISOString(),
+        status: "pending",
+      });
+      setRequestReceived(true);
+    } catch (cause) {
+      setRequestError(
+        cause instanceof Error
+          ? cause.message
+          : "Unable to save your request in this browser.",
+      );
+    }
   }
 
   function updateField<K extends keyof BookingErrors>(
@@ -219,8 +273,8 @@ export function BookingForm({ initialContext }: BookingFormProps) {
             <p className="booking-group__eyebrow">JOURNEY DETAILS</p>
             <h2 id="booking-review-heading">Review your journey</h2>
             <p className="booking-review__notice" role="status">
-              Your request has not been confirmed yet. A VÉLOCE concierge can
-              help with the next step.
+              Sending this request does not confirm a reservation. A VÉLOCE
+              concierge can follow up separately.
             </p>
             <dl className="booking-review__details">
               <div>
@@ -263,18 +317,47 @@ export function BookingForm({ initialContext }: BookingFormProps) {
                 </dd>
               </div>
             </dl>
-            <div className="booking-review__actions">
-              <Button onClick={() => setIsReviewing(false)} variant="secondary">
-                Edit journey
-              </Button>
-              <Link
-                className="button button--primary button--md"
-                href={conciergeHref}
-              >
-                Request reservation
-                <span aria-hidden="true">↗</span>
+            {requestReceived ? (
+              <p className="booking-review__notice" role="status">
+                Request received. It is not a confirmed reservation; the
+                request is saved only in this browser.
+              </p>
+            ) : (
+              <form className="booking-review__form" onSubmit={submitRequest}>
+                <fieldset className="booking-group">
+                  <legend className="booking-group__eyebrow">YOUR CONTACT DETAILS</legend>
+                  <div className="booking-group__content booking-group__content--two">
+                    <label className="booking-field" htmlFor="booking-customer-name">
+                      <span>Name</span>
+                      <input autoComplete="name" id="booking-customer-name" onChange={(event) => setCustomerName(event.target.value)} required value={customerName} />
+                    </label>
+                    <label className="booking-field" htmlFor="booking-customer-email">
+                      <span>Email</span>
+                      <input autoComplete="email" id="booking-customer-email" onChange={(event) => setCustomerEmail(event.target.value)} required type="email" value={customerEmail} />
+                    </label>
+                    <label className="booking-field" htmlFor="booking-customer-phone">
+                      <span>Phone (optional)</span>
+                      <input autoComplete="tel" id="booking-customer-phone" onChange={(event) => setCustomerPhone(event.target.value)} type="tel" value={customerPhone} />
+                    </label>
+                  </div>
+                </fieldset>
+                {requestError ? <p className="booking-field__error" role="alert">{requestError}</p> : null}
+                <div className="booking-review__actions">
+                  <Button onClick={() => setIsReviewing(false)} variant="secondary">
+                    Edit journey
+                  </Button>
+                  <Button size="md" type="submit" variant="primary">
+                    Send request
+                    <span aria-hidden="true">↗</span>
+                  </Button>
+                </div>
+              </form>
+            )}
+            {!requestReceived ? (
+              <Link className="booking-review__concierge" href={conciergeHref}>
+                Ask the concierge instead <span aria-hidden="true">↗</span>
               </Link>
-            </div>
+            ) : null}
           </section>
         ) : (
           <form
@@ -320,6 +403,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
                         : "Currently unavailable"}
                     </span>
                   ) : null}
+                  {vehiclesError ? <span className="booking-field__error" role="alert">{vehiclesError}</span> : null}
                   {vehicleError ? (
                     <span
                       className="booking-field__error"

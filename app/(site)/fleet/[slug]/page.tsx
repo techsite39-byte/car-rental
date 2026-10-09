@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { VehicleDetail } from "@/components/fleet/VehicleDetail";
+import { VehicleDetailRoute } from "@/components/fleet/VehicleDetailRoute";
 import { vehicles } from "@/data/vehicles";
 
 interface VehicleDetailPageProps {
@@ -31,9 +30,5 @@ export default async function VehicleDetailPage({
   params,
 }: VehicleDetailPageProps) {
   const { slug } = await params;
-  const vehicle = vehicles.find((candidate) => candidate.slug === slug);
-
-  if (!vehicle) notFound();
-
-  return <VehicleDetail vehicle={vehicle} />;
+  return <VehicleDetailRoute slug={slug} />;
 }

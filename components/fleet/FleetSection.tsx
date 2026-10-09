@@ -6,7 +6,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FleetFilters } from "@/components/fleet/FleetFilters";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
-import { vehicles, type FleetCategory } from "@/data/vehicles";
+import { vehicles as seedVehicles, type FleetCategory } from "@/data/vehicles";
+import { adminRepositories } from "@/lib/admin-data";
+import { useAdminCollection } from "@/lib/use-admin-collection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -16,6 +18,10 @@ export function FleetSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const previousCategory = useRef<FleetCategory>("all");
   const [selectedCategory, setSelectedCategory] = useState<FleetCategory>("all");
+  const { items: vehicles } = useAdminCollection(
+    adminRepositories.vehicles,
+    seedVehicles,
+  );
 
   const visibleVehicles = useMemo(
     () =>
@@ -26,7 +32,7 @@ export function FleetSection() {
             vehicle.category === selectedCategory,
         )
         .slice(0, HOME_VEHICLE_LIMIT),
-    [selectedCategory],
+    [selectedCategory, vehicles],
   );
 
   useEffect(() => {
@@ -211,7 +217,7 @@ export function FleetSection() {
           <div className="fleet-grid" data-fleet-grid>
             {visibleVehicles.map((vehicle, index) => (
               <VehicleCard
-                featured={index === 0}
+                featured={vehicle.featured ?? index === 0}
                 key={vehicle.id}
                 vehicle={vehicle}
               />

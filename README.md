@@ -43,3 +43,22 @@ artwork until these original image assets are added:
 npm run lint
 npm run build
 ```
+
+## Admin prototype and local data
+
+The admin workspace is available under `/admin`. It has no authentication and
+is not secure for public deployment. Admin changes and public booking/contact
+submissions use browser `localStorage`; they are limited to that browser
+profile/device and are not sent to a server or shared with other users. Clearing
+site data removes these records. The original fleet and offers are seed content;
+booking and enquiry lists begin empty and contain only actual local submissions.
+Requests remain requests and are never marked as confirmed reservations.
+
+`lib/admin-data.ts` defines the typed repository contracts and the current
+development-only browser adapter. UI components depend on those repository
+interfaces rather than a database implementation. A future MongoDB adapter
+should implement the same vehicle, booking, enquiry, and deal repositories
+behind a server-side API, with authentication and authorization added before
+any real customer data is used. MongoDB, email/SMS delivery, cloud asset
+storage, and multi-user synchronization are not implemented in this prototype.
+Website settings are a browser-local preview and do not update `data/site.ts`.

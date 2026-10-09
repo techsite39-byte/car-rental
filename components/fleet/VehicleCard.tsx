@@ -1,6 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
+import { useState } from "react";
 import type { Vehicle } from "@/data/vehicles";
 
 interface VehicleCardProps {
@@ -31,7 +34,11 @@ const priceFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
-  const imageSrc = vehicle.imagePlaceholder ?? fallbackByCategory[vehicle.category];
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageSrc =
+    imageFailed || !vehicle.imagePlaceholder
+      ? fallbackByCategory[vehicle.category]
+      : vehicle.imagePlaceholder;
 
   return (
     <article
@@ -46,6 +53,7 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
             className="vehicle-card__image"
             fill
             sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
+            onError={() => setImageFailed(true)}
             src={imageSrc}
             unoptimized
           />
@@ -72,13 +80,15 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
             <h3 className="vehicle-card__title">{vehicle.name}</h3>
             <p className="vehicle-card__type">{vehicle.type}</p>
           </div>
-          <span
-            aria-label={`Rated ${vehicle.rating} out of 5`}
-            className="vehicle-card__rating"
-          >
-            <Star aria-hidden="true" fill="currentColor" size={14} />
-            {vehicle.rating.toFixed(1)}
-          </span>
+          {vehicle.rating > 0 ? (
+            <span
+              aria-label={`Rated ${vehicle.rating} out of 5`}
+              className="vehicle-card__rating"
+            >
+              <Star aria-hidden="true" fill="currentColor" size={14} />
+              {vehicle.rating.toFixed(1)}
+            </span>
+          ) : null}
         </div>
 
         <dl className="vehicle-card__specs">

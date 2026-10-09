@@ -5,7 +5,9 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DealCard } from "@/components/deals/DealCard";
-import { deals } from "@/data/deals";
+import { deals as seedDeals } from "@/data/deals";
+import { adminRepositories } from "@/lib/admin-data";
+import { useAdminCollection } from "@/lib/use-admin-collection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,6 +17,11 @@ export function DealsSection() {
   const tweenRef = useRef<gsap.core.Tween | null>(null);
   const [canScrollPrevious, setCanScrollPrevious] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const { items: managedDeals } = useAdminCollection(
+    adminRepositories.deals,
+    seedDeals.map((deal) => ({ ...deal, slug: deal.id, active: true })),
+  );
+  const deals = managedDeals.filter(({ active }) => active);
 
   const updateNavigation = useCallback(() => {
     const viewport = viewportRef.current;

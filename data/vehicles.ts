@@ -68,6 +68,7 @@ export interface Vehicle {
   slug: string;
   name: string;
   brand: string;
+  model?: string;
   category: VehicleCategory;
   type: string;
   pricePerDay: number;
@@ -82,6 +83,7 @@ export interface Vehicle {
   imagePlaceholder?: string;
   description: string;
   available: boolean;
+  featured?: boolean;
 }
 
 export type HeroVehicle = Omit<Vehicle, "category"> & {

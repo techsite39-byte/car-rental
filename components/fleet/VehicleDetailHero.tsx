@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Vehicle } from "@/data/vehicles";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -39,8 +39,11 @@ const priceFormatter = new Intl.NumberFormat("en-IN", {
 export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
   const heroRef = useRef<HTMLElement>(null);
   const artworkRef = useRef<HTMLDivElement>(null);
+  const [imageFailed, setImageFailed] = useState(false);
   const imageSrc =
-    vehicle.imagePlaceholder ?? fallbackByCategory[vehicle.category];
+    imageFailed || !vehicle.imagePlaceholder
+      ? fallbackByCategory[vehicle.category]
+      : vehicle.imagePlaceholder;
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -211,6 +214,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
             fill
             loading="eager"
             sizes="(max-width: 700px) 100vw, (max-width: 1100px) 65vw, 60vw"
+            onError={() => setImageFailed(true)}
             src={imageSrc}
             unoptimized
           />

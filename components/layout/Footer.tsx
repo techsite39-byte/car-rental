@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUp, ArrowUpRight } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { siteConfig } from "@/data/site";
 
@@ -51,6 +52,15 @@ export function Footer() {
   return (
     <footer aria-label="Site footer" className="site-footer" ref={footerRef}>
       <section aria-labelledby="footer-cta-heading" className="footer-cta">
+        <div aria-hidden="true" className="footer-cta__car">
+          <Image
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 700px) 0px, 50vw"
+            src="/images/deals/footer-sports-car.webp"
+          />
+        </div>
         <div className="site-container footer-cta__inner">
           <p className="footer-cta__eyebrow" data-footer-reveal>
             READY FOR THE ROAD?

@@ -2,13 +2,17 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { siteConfig } from "@/data/site";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  const menuToggleRef = useRef<HTMLButtonElement>(null);
+  const menuCloseRef = useRef<HTMLButtonElement>(null);
+  const mobileNavigationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 12);
@@ -22,11 +26,34 @@ export function Navbar() {
   useEffect(() => {
     if (!isMenuOpen) return;
 
+    const menuToggle = menuToggleRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    menuCloseRef.current?.focus();
 
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsMenuOpen(false);
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+        menuToggle?.focus();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const focusableElements =
+        mobileNavigationRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled)',
+        );
+      if (!focusableElements?.length) return;
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     window.addEventListener("keydown", closeOnEscape);
@@ -34,6 +61,9 @@ export function Navbar() {
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", closeOnEscape);
+      if (document.activeElement !== menuToggle) {
+        menuToggle?.focus();
+      }
     };
   }, [isMenuOpen]);
 
@@ -86,6 +116,7 @@ export function Navbar() {
           }
           className={`navbar__menu-toggle${isMenuOpen ? " navbar__menu-toggle--open" : ""}`}
           onClick={() => setIsMenuOpen((open) => !open)}
+          ref={menuToggleRef}
           type="button"
         >
           <span />
@@ -101,12 +132,19 @@ export function Navbar() {
             exit={{ opacity: 0 }}
             initial={{ opacity: 0 }}
             key="mobile-navigation"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) closeMenu();
+            }}
+            role="presentation"
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
           >
             <motion.nav
               aria-label="Mobile navigation"
+              aria-modal="true"
               className="navbar-mobile__content"
               id="mobile-navigation"
+              ref={mobileNavigationRef}
+              role="dialog"
               initial={{
                 opacity: prefersReducedMotion ? 1 : 0,
                 y: prefersReducedMotion ? 0 : 12,
@@ -121,6 +159,15 @@ export function Navbar() {
                 ease: "easeOut",
               }}
             >
+              <button
+                aria-label="Close navigation menu"
+                className="navbar-mobile__close"
+                onClick={closeMenu}
+                ref={menuCloseRef}
+                type="button"
+              >
+                <X aria-hidden="true" size={18} />
+              </button>
               {siteConfig.navigation.map((item) => (
                 <Link
                   className="navbar-mobile__link"
