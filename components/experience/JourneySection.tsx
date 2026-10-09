@@ -9,9 +9,13 @@ import { vehicles, type Vehicle } from "@/data/vehicles";
 gsap.registerPlugin(ScrollTrigger);
 
 const journeyImages = {
-  feature: "/images/vehicles/hero-luxury-suv.png",
-  convertible: "/images/vehicles/hero-porsche-taycan.png",
-  fleet: "/images/experience/fleet-preview.webp",
+  feature: "/images/vehicles/hero-luxury-suv.jpg",
+  convertible: "/images/vehicles/hero-porsche-taycan.jpg",
+  fleet: {
+    "atlas-x7": "/images/vehicles/hero-luxury-suv.png",
+    "aurora-s": "/images/vehicles/hero-porsche-taycan.png",
+    "vantage-gt": "/images/vehicles/hero-aston-martin-vantage.png",
+  },
 } as const;
 
 function getVehicle(id: string): Vehicle {
@@ -47,7 +51,7 @@ export function JourneySection() {
 
       if (prefersReducedMotion) {
         if (countElement) {
-          countElement.textContent = fleetCount.toLocaleString("en-US");
+          countElement.textContent = fleetCount.toLocaleString("en-IN");
         }
         return;
       }
@@ -147,11 +151,11 @@ export function JourneySection() {
           },
           onUpdate: () => {
             countElement.textContent = Math.round(count.value).toLocaleString(
-              "en-US",
+              "en-IN",
             );
           },
           onComplete: () => {
-            countElement.textContent = fleetCount.toLocaleString("en-US");
+            countElement.textContent = fleetCount.toLocaleString("en-IN");
           },
         });
       }
@@ -181,21 +185,21 @@ export function JourneySection() {
         <div className="journey-section__grid">
           <ExperienceCard
             futureImage={journeyImages.feature}
-            imageSrc={
-              featuredVehicle.imagePlaceholder ?? featuredVehicle.heroImage
-            }
+            imageSrc={journeyImages.feature}
             vehicle={featuredVehicle}
             variant="feature"
           />
           <div className="journey-section__aside">
             <ExperienceCard
               futureImage={journeyImages.convertible}
+              imageSrc={journeyImages.convertible}
               vehicle={convertible}
               variant="convertible"
             />
             <ExperienceCard
               fleetVehicles={fleetVehicles}
-              futureImage={journeyImages.fleet}
+              fleetImageSources={journeyImages.fleet}
+              futureImage={journeyImages.fleet["atlas-x7"]}
               vehicle={featuredVehicle}
               variant="fleet"
             />

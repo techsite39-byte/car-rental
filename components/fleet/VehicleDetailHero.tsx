@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef, useState } from "react";
 import type { Vehicle } from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,12 +30,6 @@ const fallbackByCategory: Record<Vehicle["category"], string> = {
   electric: "/images/vehicles/hero-electric-placeholder.svg",
   convertible: "/images/vehicles/hero-sport-placeholder.svg",
 };
-
-const priceFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
 
 export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
   const heroRef = useRef<HTMLElement>(null);
@@ -173,7 +168,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
           </p>
           <p className="vehicle-detail-hero__price" data-vehicle-price>
             <span>From</span>
-            <strong>{priceFormatter.format(vehicle.pricePerDay)}</strong>
+            <strong>{formatINR(vehicle.pricePerDay)}</strong>
             <span>/ day</span>
           </p>
           <div className="vehicle-detail-hero__actions" data-vehicle-actions>

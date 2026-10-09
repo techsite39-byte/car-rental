@@ -31,11 +31,8 @@ placeholders. Deal cards currently use original inline SVG artwork and CSS
 fallback backgrounds; their future image paths are recorded in `data/deals.ts`.
 Homepage fleet cards use the category-specific vehicle SVG illustrations as
 fallbacks until original vehicle photography is added.
-The Journey section uses existing vehicle SVG illustrations and original SVG/CSS
-artwork until these original image assets are added:
-`/images/experience/journey-main.webp`,
-`/images/experience/convertible.webp`, and
-`/images/experience/fleet-preview.webp`.
+The Journey section uses local vehicle photographs and transparent cutouts from
+`public/images/vehicles/`.
 
 ## Validation
 

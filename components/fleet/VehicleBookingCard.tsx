@@ -6,6 +6,7 @@ import Link from "next/link";
 import { siteConfig } from "@/data/site";
 import { GlassCard } from "@/components/ui/GlassCard";
 import type { Vehicle } from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 interface VehicleBookingCardProps {
   vehicle: Vehicle;
@@ -17,12 +18,6 @@ function localDateValue(date: Date) {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
-
-const priceFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
 
 export function VehicleBookingCard({ vehicle }: VehicleBookingCardProps) {
   const router = useRouter();
@@ -77,7 +72,7 @@ export function VehicleBookingCard({ vehicle }: VehicleBookingCardProps) {
           <h3>{vehicle.name}</h3>
         </div>
         <p className="vehicle-booking-card__price">
-          <strong>{priceFormatter.format(vehicle.pricePerDay)}</strong>
+          <strong>{formatINR(vehicle.pricePerDay)}</strong>
           <span>/ day</span>
         </p>
       </div>

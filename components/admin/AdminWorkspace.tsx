@@ -37,6 +37,7 @@ import {
   type ManagedDeal,
 } from "@/lib/admin-data";
 import { useAdminCollection } from "@/lib/use-admin-collection";
+import { formatINR } from "@/lib/currency";
 
 type WorkspacePage =
   | "overview"
@@ -57,12 +58,6 @@ const categoryLabels: Record<VehicleCategory, string> = {
   electric: "Electric",
   convertible: "Convertible",
 };
-
-const priceFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium",
@@ -565,14 +560,14 @@ function FleetManagement({
                   <tr key={vehicle.id}>
                     <td><div className="admin-vehicle-cell"><VehicleImage vehicle={vehicle} /><span><strong>{vehicle.brand} {vehicle.name}</strong><small>{vehicle.slug}</small></span></div></td>
                     <td>{categoryLabels[vehicle.category]}</td>
-                    <td>{priceFormatter.format(vehicle.pricePerDay)}</td>
+                    <td>{formatINR(vehicle.pricePerDay)}</td>
                     <td><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></td>
                     <td><div className="admin-row-actions"><Link aria-label={`Edit ${vehicle.name}`} className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></td>
                   </tr>
                 ))}</tbody>
               </table>
             </div>
-            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.brand} {vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {priceFormatter.format(vehicle.pricePerDay)}/day</span><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
+            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.brand} {vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)}/day</span><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
           </>
         ) : <EmptyState title="No vehicles match" detail="Try changing your search or filters." />}
       </section>
@@ -728,7 +723,7 @@ function VehicleForm({
             <p className="admin-eyebrow">IMAGE PREVIEW</p>
             <VehicleImage className="admin-preview-card__image" vehicle={preview} />
             <strong>{form.brand} {form.name || "Display name"}</strong>
-            <span>{form.category ? categoryLabels[form.category] : "Category"} · {priceFormatter.format(Number(form.pricePerDay) || 0)} / day</span>
+            <span>{form.category ? categoryLabels[form.category] : "Category"} · {formatINR(Number(form.pricePerDay) || 0)} / day</span>
             <small>Fallback artwork appears if this image reference cannot load.</small>
           </section>
         </aside>

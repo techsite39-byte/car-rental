@@ -1,6 +1,7 @@
 import { GlassCard } from "@/components/ui/GlassCard";
 import type { DriverPreference } from "@/lib/booking";
 import type { Vehicle } from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 interface BookingSummaryProps {
   vehicle: Vehicle | null;
@@ -13,12 +14,6 @@ interface BookingSummaryProps {
   rentalDays: number | null;
   estimatedTotal: number | null;
 }
-
-const currencyFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
 
 function displayValue(value: string) {
   return value.trim() || "To be selected";
@@ -71,7 +66,7 @@ export function BookingSummary({
         <div>
           <dt>Price per day</dt>
           <dd>
-            {vehicle ? currencyFormatter.format(vehicle.pricePerDay) : "—"}
+            {vehicle ? formatINR(vehicle.pricePerDay) : "—"}
           </dd>
         </div>
         <div>
@@ -112,7 +107,7 @@ export function BookingSummary({
         <strong>
           {estimatedTotal === null
             ? "—"
-            : currencyFormatter.format(estimatedTotal)}
+            : formatINR(estimatedTotal)}
         </strong>
       </div>
       <p className="booking-summary__note">

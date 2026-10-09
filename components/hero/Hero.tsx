@@ -14,6 +14,7 @@ import { BookingBar } from "@/components/hero/BookingBar";
 import { HeroVehicle } from "@/components/hero/HeroVehicle";
 import { VehicleCategorySelector } from "@/components/hero/VehicleCategorySelector";
 import { getHeroVehicle, type HeroCategory } from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,11 +31,7 @@ export function Hero() {
   const statsRef = useRef<HTMLDListElement>(null);
   const statsTransitionIdRef = useRef(0);
   const initialStatsVehicleRef = useRef(vehicle.id);
-  const price = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(statsVehicle.pricePerDay);
+  const price = formatINR(statsVehicle.pricePerDay);
 
   useEffect(() => {
     const hero = heroRef.current;

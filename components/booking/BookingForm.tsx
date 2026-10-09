@@ -18,6 +18,7 @@ import {
   createRecordId,
 } from "@/lib/admin-data";
 import { useAdminCollection } from "@/lib/use-admin-collection";
+import { formatINR } from "@/lib/currency";
 
 export interface BookingContext {
   vehicle?: string;
@@ -309,11 +310,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
                 <dd>
                   {estimatedTotal === null
                     ? "Not available"
-                    : new Intl.NumberFormat("en-IN", {
-                        style: "currency",
-                        currency: "INR",
-                        maximumFractionDigits: 0,
-                      }).format(estimatedTotal)}
+                    : formatINR(estimatedTotal)}
                 </dd>
               </div>
             </dl>

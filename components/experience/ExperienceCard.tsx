@@ -10,6 +10,7 @@ interface ExperienceCardProps {
   futureImage: string;
   imageSrc?: string;
   fleetVehicles?: Vehicle[];
+  fleetImageSources?: Record<string, string>;
 }
 
 const cardContent = {
@@ -126,6 +127,7 @@ export function ExperienceCard({
   futureImage,
   imageSrc,
   fleetVehicles = [],
+  fleetImageSources = {},
 }: ExperienceCardProps) {
   const content = cardContent[variant];
 
@@ -154,7 +156,10 @@ export function ExperienceCard({
         ) : (
           <div aria-label="A selection of VÉLOCE vehicles" className="journey-fleet-artwork">
             {fleetVehicles.map((fleetVehicle, index) => {
-              const src = fleetVehicle.imagePlaceholder ?? fleetVehicle.heroImage;
+              const src =
+                fleetImageSources[fleetVehicle.id] ??
+                fleetVehicle.imagePlaceholder ??
+                fleetVehicle.heroImage;
 
               return src ? (
                 <div

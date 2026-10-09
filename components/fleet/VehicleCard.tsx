@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import { useState } from "react";
 import type { Vehicle } from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -26,12 +27,6 @@ const categoryLabels: Record<Vehicle["category"], string> = {
   electric: "Electric",
   convertible: "Convertible",
 };
-
-const priceFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
 
 export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -113,7 +108,7 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
         <div className="vehicle-card__footer">
           <p className="vehicle-card__price">
             <span>From</span>
-            <strong>{priceFormatter.format(vehicle.pricePerDay)}</strong>
+            <strong>{formatINR(vehicle.pricePerDay)}</strong>
             <span>/ day</span>
           </p>
           <Link
