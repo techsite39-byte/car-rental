@@ -8,6 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { vehicles, type FleetCategory, type Vehicle } from "@/data/vehicles";
+import "./post-fleet-sections.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
