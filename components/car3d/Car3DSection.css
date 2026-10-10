@@ -1,0 +1,87 @@
+.car3d {
+  position: relative;
+  isolation: isolate;
+  min-height: 560px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 52% 76%, rgb(45 49 43 / 40%), transparent 48%),
+    linear-gradient(180deg, #090b0b 0%, #0b0d0c 72%, #080a09 100%);
+  color: #f4f0e8;
+}
+
+.car3d__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.car3d__canvas canvas {
+  display: block;
+}
+
+.car3d__status {
+  position: absolute;
+  z-index: 2;
+  right: 24px;
+  bottom: 18px;
+  left: 24px;
+  margin: 0;
+  color: rgb(244 240 232 / 72%);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.car3d__status--error {
+  color: #f0c5bb;
+}
+
+.car3d__copy {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 48px, 1240px);
+  margin: 0 auto;
+  padding-top: 58px;
+  pointer-events: none;
+}
+
+.car3d__eyebrow {
+  margin: 0 0 14px;
+  color: #c9a96a;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+}
+
+.car3d__copy h2 {
+  max-width: 520px;
+  margin: 0;
+  font-family: var(--font-family-sans, inherit);
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.car3d__description {
+  margin: 16px 0 0;
+  color: rgb(244 240 232 / 66%);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 700px) {
+  .car3d {
+    min-height: 450px;
+  }
+
+  .car3d__copy {
+    width: calc(100% - 40px);
+    padding-top: 30px;
+  }
+
+  .car3d__description {
+    max-width: 240px;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+}
