@@ -4,11 +4,13 @@ import { JourneySection } from "@/components/experience/JourneySection";
 import { FleetSection } from "@/components/fleet/FleetSection";
 import { PostFleetSections } from "@/components/homepage/PostFleetSections";
 import { Car3DSection } from "@/components/car3d/Car3DSection";
+import { OpenRoadSteps } from "@/components/homepage/OpenRoadSteps";
 
 export default function HomePage() {
   return (
     <main>
       <Car3DSection />
+      <OpenRoadSteps />
       <Hero />
       <DealsSection />
       <JourneySection />
