@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build mobile loading fix",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Rebuild mobile loader fix",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Serve mobile fix production build",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"run",
+				"start",
+				"--",
+				"-p",
+				"3002"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

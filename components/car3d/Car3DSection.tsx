@@ -2,8 +2,8 @@
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Environment, useGLTF } from "@react-three/drei";
+import { Canvas, useFrame, useThree, type RootState } from "@react-three/fiber";
+import { ContactShadows, Environment } from "@react-three/drei";
 import {
   AmbientLight,
   AdditiveBlending,
@@ -16,10 +16,12 @@ import {
   MeshStandardMaterial,
   PerspectiveCamera,
   PointLight,
+  Texture,
   Vector3,
   type Material,
   type Group,
 } from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
   Component,
   Suspense,
@@ -37,6 +39,9 @@ import "./Car3DSection.css";
 gsap.registerPlugin(ScrollTrigger);
 
 const MODEL_URL = "/bmw_m4_competition_m_package.glb";
+const MODEL_REQUEST_TIMEOUT_MS = 25_000;
+const MODEL_PARSE_TIMEOUT_MS = 20_000;
+const RENDERER_TIMEOUT_MS = 15_000;
 const SCENE_POSES = [
   { carYaw: 0, carX: 0.48, scale: 1, camera: [6.2, 2.8, 7.6], target: [0, 0.85, 0], headlights: 0, taillights: 0, cabin: 0 },
   { carYaw: 0, carX: 0.48, scale: 1, camera: [3.3, 1.65, 5.4], target: [0.35, 0.9, 2.45], headlights: 0, taillights: 0, cabin: 0 },
@@ -154,25 +159,111 @@ interface PointerPosition {
   y: number;
 }
 
+interface RendererProfile {
+  dpr: number;
+  antialias: boolean;
+  powerPreference: "default" | "high-performance";
+  contactShadows: boolean;
+}
+
+type ModelLoadState =
+  | { status: "loading"; progress: number | null }
+  | { status: "parsing" }
+  | { status: "ready"; scene: Group }
+  | { status: "error"; error: Error };
+
+type NavigatorWithCapabilities = Navigator & {
+  deviceMemory?: number;
+  connection?: { saveData?: boolean; effectiveType?: string };
+};
+
+function getRendererProfile(): RendererProfile {
+  const device = navigator as NavigatorWithCapabilities;
+  const connection = device.connection;
+  const limitedDevice =
+    (device.deviceMemory !== undefined && device.deviceMemory <= 4) ||
+    (navigator.hardwareConcurrency > 0 && navigator.hardwareConcurrency <= 4) ||
+    connection?.saveData === true ||
+    connection?.effectiveType === "slow-2g" ||
+    connection?.effectiveType === "2g" ||
+    connection?.effectiveType === "3g" ||
+    window.matchMedia("(pointer: coarse)").matches;
+
+  return {
+    dpr: limitedDevice
+      ? 1
+      : Math.min(window.devicePixelRatio || 1, 1.25),
+    antialias: !limitedDevice,
+    powerPreference: limitedDevice ? "default" : "high-performance",
+    contactShadows: !limitedDevice,
+  };
+}
+
+function normalizeError(value: unknown, fallback: string): Error {
+  if (value instanceof Error) return value;
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof value.message === "string"
+  ) {
+    return new Error(value.message);
+  }
+  return new Error(fallback);
+}
+
+function disposeLoadedScene(scene: Group) {
+  const geometries = new Set<Mesh["geometry"]>();
+  const materials = new Set<Material>();
+  const textures = new Set<Texture>();
+
+  scene.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    if (!geometries.has(object.geometry)) {
+      geometries.add(object.geometry);
+      object.geometry.dispose();
+    }
+
+    const objectMaterials = Array.isArray(object.material)
+      ? object.material
+      : [object.material];
+    objectMaterials.forEach((material) => {
+      if (materials.has(material)) return;
+      materials.add(material);
+      Object.values(material).forEach((value) => {
+        if (value instanceof Texture && !textures.has(value)) {
+          textures.add(value);
+          value.dispose();
+        }
+      });
+      material.dispose();
+    });
+  });
+}
+
 interface CarModelProps {
+  scene: Group;
   ambientLightRef: RefObject<AmbientLight | null>;
+  contactShadows: boolean;
+  onFirstFrame: () => void;
   reducedMotion: boolean;
   sectionRef: RefObject<HTMLElement | null>;
   stageRef: RefObject<HTMLDivElement | null>;
-  onLoaded: () => void;
 }
 
 function CarModel({
+  scene,
   ambientLightRef,
+  contactShadows,
+  onFirstFrame,
   reducedMotion,
   sectionRef,
   stageRef,
-  onLoaded,
 }: CarModelProps) {
-  const { scene } = useGLTF(MODEL_URL);
   const rotationGroup = useRef<Group>(null);
   const pointer = useRef<PointerPosition>({ x: 0, y: 0 });
   const scrollProgress = useRef(0);
+  const firstFrameReported = useRef(false);
   const { camera, invalidate, size } = useThree();
   const cameraRef = useRef<PerspectiveCamera | null>(
     camera instanceof PerspectiveCamera ? camera : null,
@@ -180,10 +271,6 @@ function CarModel({
   const cameraTarget = useRef(new Vector3());
   const contactShadowRef = useRef<Group>(null);
   const cabinLightRef = useRef<PointLight>(null);
-
-  useEffect(() => {
-    onLoaded();
-  }, [onLoaded]);
 
   const layout = useMemo(() => {
     const model = scene.clone(true);
@@ -492,6 +579,11 @@ function CarModel({
   }, [invalidate, pointer, reducedMotion]);
 
   useFrame(() => {
+    if (!firstFrameReported.current) {
+      firstFrameReported.current = true;
+      onFirstFrame();
+    }
+
     const group = rotationGroup.current;
     if (!group) return;
 
@@ -671,23 +763,25 @@ function CarModel({
           </group>
         </group>
       </group>
-      <ContactShadows
-        ref={contactShadowRef}
-        blur={2.5}
-        far={4}
-        frames={1}
-        opacity={0.48}
-        position={[0, 0, 0]}
-        scale={10}
-        color="#000000"
-      />
+      {contactShadows && (
+        <ContactShadows
+          ref={contactShadowRef}
+          blur={2.5}
+          far={4}
+          frames={1}
+          opacity={0.48}
+          position={[0, 0, 0]}
+          scale={10}
+          color="#000000"
+        />
+      )}
     </>
   );
 }
 
 interface Car3DErrorBoundaryProps {
   children: ReactNode;
-  onError: () => void;
+  onError: (error: Error) => void;
 }
 
 class Car3DErrorBoundary extends Component<
@@ -702,7 +796,7 @@ class Car3DErrorBoundary extends Component<
 
   componentDidCatch(error: Error) {
     console.error("Unable to render the 3D car preview.", error);
-    this.props.onError();
+    this.props.onError(error);
   }
 
   render() {
@@ -714,19 +808,209 @@ export function Car3DSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const ambientLightRef = useRef<AmbientLight>(null);
+  const [modelAttempt, setModelAttempt] = useState(0);
+  const [rendererAttempt, setRendererAttempt] = useState(0);
+  const [modelLoadState, setModelLoadState] = useState<ModelLoadState>({
+    status: "loading",
+    progress: null,
+  });
+  const [rendererProfile, setRendererProfile] =
+    useState<RendererProfile | null>(null);
+  const [rendererReady, setRendererReady] = useState(false);
+  const [modelRendered, setModelRendered] = useState(false);
+  const [rendererError, setRendererError] = useState<Error | null>(null);
+  const [rendererCanvas, setRendererCanvas] =
+    useState<HTMLCanvasElement | null>(null);
   const [reducedMotion, setReducedMotion] = useState(true);
-  const [previewStatus, setPreviewStatus] = useState<
-    "loading" | "ready" | "error"
-  >("loading");
 
-  const handleModelLoaded = useCallback(
-    () => setPreviewStatus("ready"),
-    [],
-  );
+  useEffect(() => {
+    let active = true;
+    let settled = false;
+    let parseTimeout: number | undefined;
+    const request = new XMLHttpRequest();
+
+    const reportError = (value: unknown, fallback: string) => {
+      if (!active || settled) return;
+      settled = true;
+      if (parseTimeout !== undefined) window.clearTimeout(parseTimeout);
+      const error = normalizeError(value, fallback);
+      console.error("Unable to load the BMW 3D preview.", error);
+      setModelLoadState({ status: "error", error });
+    };
+
+    setModelLoadState({ status: "loading", progress: null });
+    request.open("GET", MODEL_URL);
+    request.responseType = "arraybuffer";
+    request.timeout = MODEL_REQUEST_TIMEOUT_MS;
+    request.onprogress = (event) => {
+      const progress =
+        event.lengthComputable && event.total > 0
+          ? Math.min(95, Math.floor((event.loaded / event.total) * 95))
+          : null;
+      setModelLoadState((current) =>
+        current.status === "loading" && current.progress !== progress
+          ? { status: "loading", progress }
+          : current,
+      );
+    };
+    request.onload = () => {
+      if (request.status < 200 || request.status >= 300) {
+        reportError(
+          new Error(`The BMW model request returned HTTP ${request.status}.`),
+          "The BMW model request failed.",
+        );
+        return;
+      }
+
+      if (!(request.response instanceof ArrayBuffer)) {
+        reportError(null, "The BMW model response was empty or invalid.");
+        return;
+      }
+
+      setModelLoadState({ status: "parsing" });
+      parseTimeout = window.setTimeout(
+        () =>
+          reportError(
+            new Error("The BMW model took too long to prepare."),
+            "The BMW model could not be prepared.",
+          ),
+        MODEL_PARSE_TIMEOUT_MS,
+      );
+
+      try {
+        new GLTFLoader().parse(
+          request.response,
+          `${window.location.origin}/`,
+          (gltf) => {
+            if (!active || settled) return;
+            settled = true;
+            if (parseTimeout !== undefined) {
+              window.clearTimeout(parseTimeout);
+            }
+            setModelLoadState({ status: "ready", scene: gltf.scene });
+          },
+          (error) =>
+            reportError(error, "The BMW model could not be decoded."),
+        );
+      } catch (error) {
+        reportError(error, "The BMW model could not be decoded.");
+      }
+    };
+    request.onerror = () =>
+      reportError(new Error("The BMW model request failed."), "Network error.");
+    request.ontimeout = () =>
+      reportError(
+        new Error(
+          `The BMW model request timed out after ${MODEL_REQUEST_TIMEOUT_MS / 1000} seconds.`,
+        ),
+        "The BMW model request timed out.",
+      );
+    request.onabort = () => {
+      if (active && !settled) {
+        reportError(new Error("The BMW model request was canceled."), "Canceled.");
+      }
+    };
+
+    try {
+      request.send();
+    } catch (error) {
+      reportError(error, "The BMW model request could not start.");
+    }
+
+    return () => {
+      active = false;
+      if (parseTimeout !== undefined) window.clearTimeout(parseTimeout);
+      request.abort();
+    };
+  }, [modelAttempt]);
+
+  useEffect(() => {
+    setRendererProfile(getRendererProfile());
+  }, []);
+
   const handleModelError = useCallback(
-    () => setPreviewStatus("error"),
+    (error: Error) => setRendererError(error),
     [],
   );
+  const handleRendererError = useCallback((error: Error) => {
+    console.error("Unable to initialize the BMW 3D renderer.", error);
+    setRendererError(error);
+  }, []);
+  const handleRendererCreated = useCallback((state: RootState) => {
+    setRendererCanvas(state.gl.domElement);
+    setRendererReady(true);
+    state.invalidate();
+  }, []);
+  const handleFirstFrame = useCallback(() => setModelRendered(true), []);
+  const modelReady = modelLoadState.status === "ready";
+  const previewError =
+    modelLoadState.status === "error" ? modelLoadState.error : rendererError;
+  const previewReady =
+    modelReady &&
+    rendererProfile !== null &&
+    rendererReady &&
+    modelRendered &&
+    previewError === null;
+
+  useEffect(() => {
+    if (
+      modelLoadState.status !== "ready" ||
+      !rendererProfile ||
+      previewReady ||
+      previewError
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(
+      () =>
+        handleRendererError(
+          new Error("The BMW WebGL renderer did not become ready in time."),
+        ),
+      RENDERER_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [
+    handleRendererError,
+    modelLoadState.status,
+    previewError,
+    previewReady,
+    rendererAttempt,
+    rendererProfile,
+  ]);
+
+  useEffect(() => {
+    if (!rendererCanvas) return;
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      handleRendererError(new Error("The WebGL context was lost."));
+    };
+    rendererCanvas.addEventListener("webglcontextlost", handleContextLost);
+    return () =>
+      rendererCanvas.removeEventListener("webglcontextlost", handleContextLost);
+  }, [handleRendererError, rendererCanvas]);
+
+  useEffect(() => {
+    if (modelLoadState.status !== "ready") return;
+    const { scene } = modelLoadState;
+    return () => disposeLoadedScene(scene);
+  }, [modelLoadState]);
+
+  const handleRetry = useCallback(() => {
+    setRendererError(null);
+    setRendererCanvas(null);
+    setRendererReady(false);
+    setModelRendered(false);
+
+    if (modelLoadState.status === "error") {
+      setModelLoadState({ status: "loading", progress: null });
+      setModelAttempt((attempt) => attempt + 1);
+      return;
+    }
+
+    setRendererAttempt((attempt) => attempt + 1);
+  }, [modelLoadState.status]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -744,43 +1028,52 @@ export function Car3DSection() {
     >
       <div className="car3d__stage" ref={stageRef}>
         <div className="car3d__canvas" aria-hidden="true">
-          <Car3DErrorBoundary onError={handleModelError}>
-            <Canvas
-              camera={{ position: [4.4, 1.55, 5.9], fov: 38 }}
-              dpr={[1, 1.25]}
-              frameloop="demand"
-              gl={{
-                alpha: true,
-                antialias: true,
-                powerPreference: "high-performance",
-              }}
-              fallback="Interactive 3D preview of the BMW M4 Competition."
-            >
-              <ambientLight ref={ambientLightRef} intensity={0.38} />
-              <directionalLight
-                intensity={2.4}
-                position={[4, 7, 5]}
-              />
-              <spotLight
-                angle={0.55}
-                intensity={36}
-                penumbra={0.8}
-                position={[-4, 5, -3]}
-              />
-              <Suspense fallback={null}>
-                <Environment preset="studio" />
-              </Suspense>
-              <Suspense fallback={null}>
-                <CarModel
-                  ambientLightRef={ambientLightRef}
-                  reducedMotion={reducedMotion}
-                  sectionRef={sectionRef}
-                  stageRef={stageRef}
-                  onLoaded={handleModelLoaded}
-                />
-              </Suspense>
-            </Canvas>
-          </Car3DErrorBoundary>
+          {modelLoadState.status === "ready" &&
+            rendererProfile &&
+            !rendererError && (
+              <Car3DErrorBoundary
+                key={rendererAttempt}
+                onError={handleModelError}
+              >
+                <Canvas
+                  camera={{ position: [4.4, 1.55, 5.9], fov: 38 }}
+                  dpr={rendererProfile.dpr}
+                  frameloop="demand"
+                  gl={{
+                    alpha: true,
+                    antialias: rendererProfile.antialias,
+                    powerPreference: rendererProfile.powerPreference,
+                  }}
+                  key={rendererAttempt}
+                  onCreated={handleRendererCreated}
+                  fallback="Interactive 3D preview of the BMW M4 Competition."
+                >
+                  <ambientLight ref={ambientLightRef} intensity={0.38} />
+                  <directionalLight
+                    intensity={2.4}
+                    position={[4, 7, 5]}
+                  />
+                  <spotLight
+                    angle={0.55}
+                    intensity={36}
+                    penumbra={0.8}
+                    position={[-4, 5, -3]}
+                  />
+                  <Suspense fallback={null}>
+                    <Environment preset="studio" />
+                  </Suspense>
+                  <CarModel
+                    scene={modelLoadState.scene}
+                    ambientLightRef={ambientLightRef}
+                    contactShadows={rendererProfile.contactShadows}
+                    onFirstFrame={handleFirstFrame}
+                    reducedMotion={reducedMotion}
+                    sectionRef={sectionRef}
+                    stageRef={stageRef}
+                  />
+                </Canvas>
+              </Car3DErrorBoundary>
+            )}
         </div>
         <div className="car3d__vignette" aria-hidden="true" />
         <div className="car3d__tech-overlay" aria-hidden="true">
@@ -818,15 +1111,47 @@ export function Car3DSection() {
             </article>
           ))}
         </div>
-        {previewStatus === "loading" && (
-          <p className="car3d__status" role="status">
-            Loading the BMW M4 Competition 3D preview...
-          </p>
+        {!previewReady && !previewError && (
+          <div className="car3d__status car3d__status--loading" role="status">
+            <div
+              className={`car3d__loading-track${modelLoadState.status === "loading" && modelLoadState.progress !== null ? "" : " car3d__loading-track--indeterminate"}`}
+              aria-hidden="true"
+            >
+              <span
+                style={
+                  modelLoadState.status === "loading" &&
+                  modelLoadState.progress !== null
+                    ? { width: `${modelLoadState.progress}%` }
+                    : undefined
+                }
+              />
+            </div>
+            <span>
+              {modelLoadState.status === "loading"
+                ? modelLoadState.progress === null
+                  ? "Loading the BMW M4 Competition 3D preview..."
+                  : `Loading the BMW M4 Competition 3D preview... ${modelLoadState.progress}%`
+                : modelLoadState.status === "parsing"
+                  ? "Preparing the BMW M4 Competition 3D preview..."
+                  : "Starting the BMW M4 Competition 3D preview..."}
+            </span>
+          </div>
         )}
-        {previewStatus === "error" && (
-          <p className="car3d__status car3d__status--error" role="alert">
-            The BMW 3D preview is unavailable, but the rest of the page is ready.
-          </p>
+        {previewError && (
+          <div className="car3d__status car3d__status--error" role="alert">
+            <p>
+              {process.env.NODE_ENV === "development"
+                ? previewError.message
+                : "The BMW 3D preview is unavailable, but the rest of the page is ready."}
+            </p>
+            <button
+              className="car3d__retry"
+              onClick={handleRetry}
+              type="button"
+            >
+              Retry 3D preview
+            </button>
+          </div>
         )}
         <p className="car3d__scroll-cue" aria-hidden="true">
           SCROLL TO EXPLORE <span />

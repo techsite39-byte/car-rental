@@ -104,7 +104,7 @@ export function OpenRoadSteps() {
       });
     };
 
-    const bmwSection = section.previousElementSibling;
+    const frameSequence = section.previousElementSibling;
     const isReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -157,28 +157,22 @@ export function OpenRoadSteps() {
         refresh();
       }
     };
-    const isBmwLayoutReady = () => {
-      if (!bmwSection?.classList.contains("car3d")) return true;
-      if (bmwSection.querySelector(".car3d__status--error")) return true;
-      if (bmwSection.querySelector(".car3d__status")) return false;
-      return (
-        isReducedMotion ||
-        bmwSection.querySelector(".pin-spacer") !== null
-      );
+    const isHeroLayoutReady = () => {
+      if (!frameSequence?.classList.contains("frame-sequence")) return true;
+      return frameSequence.parentElement?.classList.contains("pin-spacer") ?? false;
     };
 
-    if (isBmwLayoutReady()) {
+    if (isHeroLayoutReady()) {
       createTrigger();
-    } else if (bmwSection) {
+    } else if (frameSequence?.parentElement) {
       heroLayoutObserver = new MutationObserver(() => {
-        if (!isBmwLayoutReady()) return;
+        if (!isHeroLayoutReady()) return;
 
         heroLayoutObserver?.disconnect();
         createTrigger();
       });
-      heroLayoutObserver.observe(bmwSection, {
+      heroLayoutObserver.observe(frameSequence.parentElement, {
         childList: true,
-        subtree: true,
       });
     }
 

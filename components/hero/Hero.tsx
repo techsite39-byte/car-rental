@@ -242,7 +242,6 @@ export function Hero() {
 
   return (
     <section
-      aria-labelledby="hero-title"
       className="hero"
       data-hero
       onPointerLeave={resetParallax}
@@ -251,20 +250,7 @@ export function Hero() {
     >
       <div className="site-container hero__inner">
         <div className={`hero__composition hero__composition--${activeCategory}`}>
-          <div className="hero__copy">
-            <p className="hero__eyebrow" data-hero-eyebrow>
-              <span aria-hidden="true" />
-              Premium mobility
-            </p>
-            <h1 className="hero__heading" data-hero-heading id="hero-title">
-              <span className="hero__heading-line">
-                <span data-hero-heading-line>Luxury Cars.</span>
-              </span>
-              <span className="hero__heading-line">
-                <span data-hero-heading-line>For Every Journey.</span>
-              </span>
-            </h1>
-          </div>
+          <div className="hero__copy" />
 
           <HeroVehicle
             artworkRef={artworkRef}
