@@ -156,9 +156,7 @@ interface PointerPosition {
 
 interface CarModelProps {
   ambientLightRef: RefObject<AmbientLight | null>;
-  modelReady: boolean;
   reducedMotion: boolean;
-  rendererReady: boolean;
   sectionRef: RefObject<HTMLElement | null>;
   stageRef: RefObject<HTMLDivElement | null>;
   onLoaded: () => void;
@@ -166,9 +164,7 @@ interface CarModelProps {
 
 function CarModel({
   ambientLightRef,
-  modelReady,
   reducedMotion,
-  rendererReady,
   sectionRef,
   stageRef,
   onLoaded,
@@ -356,19 +352,7 @@ function CarModel({
   useLayoutEffect(() => {
     const section = sectionRef.current;
     const stage = stageRef.current;
-    if (
-      !modelReady ||
-      !rendererReady ||
-      size.width <= 0 ||
-      size.height <= 0 ||
-      !section ||
-      !stage
-    ) {
-      return;
-    }
-
-    const stageBounds = stage.getBoundingClientRect();
-    if (stageBounds.width <= 0 || stageBounds.height <= 0) return;
+    if (!section || !stage) return;
 
     if (reducedMotion) {
       scrollProgress.current = 0;
@@ -468,12 +452,8 @@ function CarModel({
   }, [
     ambientLightRef,
     invalidate,
-    modelReady,
     reducedMotion,
-    rendererReady,
     sectionRef,
-    size.height,
-    size.width,
     stageRef,
   ]);
 
@@ -734,26 +714,17 @@ export function Car3DSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const ambientLightRef = useRef<AmbientLight>(null);
-  const [rendererReady, setRendererReady] = useState(false);
-  const [modelReady, setModelReady] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(true);
-  const previewStatus = previewError
-    ? "error"
-    : rendererReady && modelReady
-      ? "ready"
-      : "loading";
+  const [previewStatus, setPreviewStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
 
   const handleModelLoaded = useCallback(
-    () => setModelReady(true),
+    () => setPreviewStatus("ready"),
     [],
   );
   const handleModelError = useCallback(
-    () => setPreviewError(true),
-    [],
-  );
-  const handleRendererReady = useCallback(
-    () => setRendererReady(true),
+    () => setPreviewStatus("error"),
     [],
   );
 
@@ -768,7 +739,7 @@ export function Car3DSection() {
   return (
     <section
       ref={sectionRef}
-      className={`car3d${reducedMotion ? " car3d--reduced" : ""}${previewStatus === "ready" ? " car3d--ready" : ""}`}
+      className={`car3d${reducedMotion ? " car3d--reduced" : ""}`}
       aria-labelledby="car3d-title"
     >
       <div className="car3d__stage" ref={stageRef}>
@@ -783,7 +754,6 @@ export function Car3DSection() {
                 antialias: true,
                 powerPreference: "high-performance",
               }}
-              onCreated={handleRendererReady}
               fallback="Interactive 3D preview of the BMW M4 Competition."
             >
               <ambientLight ref={ambientLightRef} intensity={0.38} />
@@ -803,9 +773,7 @@ export function Car3DSection() {
               <Suspense fallback={null}>
                 <CarModel
                   ambientLightRef={ambientLightRef}
-                  modelReady={modelReady}
                   reducedMotion={reducedMotion}
-                  rendererReady={rendererReady}
                   sectionRef={sectionRef}
                   stageRef={stageRef}
                   onLoaded={handleModelLoaded}
@@ -851,8 +819,7 @@ export function Car3DSection() {
           ))}
         </div>
         {previewStatus === "loading" && (
-          <p className="car3d__status car3d__status--loading" role="status">
-            <span className="car3d__loading-line" aria-hidden="true" />
+          <p className="car3d__status" role="status">
             Loading the BMW M4 Competition 3D preview...
           </p>
         )}

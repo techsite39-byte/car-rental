@@ -23,12 +23,6 @@
   position: absolute;
   z-index: 0;
   inset: 0;
-  opacity: 0;
-  transition: opacity 720ms cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-
-.car3d--ready .car3d__canvas {
-  opacity: 1;
 }
 
 .car3d__canvas canvas {
@@ -155,40 +149,6 @@
   font-size: 12px;
   line-height: 1.5;
   text-align: center;
-}
-
-.car3d__status--loading {
-  bottom: clamp(64px, 9vh, 86px);
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-}
-
-.car3d__loading-line {
-  position: relative;
-  width: 44px;
-  height: 2px;
-  overflow: hidden;
-  background: rgb(216 255 79 / 24%);
-}
-
-.car3d__loading-line::after {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 45%;
-  background: var(--accent, #d8ff4f);
-  content: "";
-  animation: car3d-loading 1.2s ease-in-out infinite;
-}
-
-@keyframes car3d-loading {
-  from {
-    transform: translateX(-110%);
-  }
-
-  to {
-    transform: translateX(245%);
-  }
 }
 
 .car3d__status--error {
@@ -326,15 +286,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .car3d__canvas {
-    transition: none;
-  }
-
-  .car3d__loading-line::after {
-    animation: none;
-    transform: translateX(60%);
-  }
-
   .car3d__chapter {
     will-change: auto;
   }
