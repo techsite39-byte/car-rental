@@ -1,0 +1,36 @@
+.section2-sequence {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--background, #070807);
+}
+
+.section2-sequence__fallback,
+.section2-sequence__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.section2-sequence__fallback {
+  object-fit: contain;
+}
+
+.section2-sequence__canvas {
+  opacity: 0;
+}
+
+.section2-sequence--ready .section2-sequence__fallback {
+  opacity: 0;
+}
+
+.section2-sequence--ready .section2-sequence__canvas {
+  opacity: 1;
+}

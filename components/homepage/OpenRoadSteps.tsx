@@ -104,7 +104,6 @@ export function OpenRoadSteps() {
       });
     };
 
-    const frameSequence = section.previousElementSibling;
     const isReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -115,7 +114,7 @@ export function OpenRoadSteps() {
     window.addEventListener("pagehide", saveScrollPosition);
 
     let context: gsap.Context | undefined;
-    let heroLayoutObserver: MutationObserver | undefined;
+    let sequenceLayoutObserver: MutationObserver | undefined;
     let refreshFrame: number | undefined;
     const refresh = () => {
       if (refreshFrame !== undefined) {
@@ -157,21 +156,30 @@ export function OpenRoadSteps() {
         refresh();
       }
     };
-    const isHeroLayoutReady = () => {
-      if (!frameSequence?.classList.contains("frame-sequence")) return true;
-      return frameSequence.parentElement?.classList.contains("pin-spacer") ?? false;
-    };
+    const precedingSequences = Array.from(
+      section.parentElement?.querySelectorAll<HTMLElement>(
+        ".frame-sequence, .section2-sequence",
+      ) ?? [],
+    ).filter(
+      (sequence) =>
+        sequence.compareDocumentPosition(section) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const arePrecedingSequencesPinned = () =>
+      precedingSequences.every((sequence) =>
+        sequence.parentElement?.classList.contains("pin-spacer"),
+      );
 
-    if (isHeroLayoutReady()) {
+    if (arePrecedingSequencesPinned()) {
       createTrigger();
-    } else if (frameSequence?.parentElement) {
-      heroLayoutObserver = new MutationObserver(() => {
-        if (!isHeroLayoutReady()) return;
+    } else if (section.parentElement) {
+      sequenceLayoutObserver = new MutationObserver(() => {
+        if (!arePrecedingSequencesPinned()) return;
 
-        heroLayoutObserver?.disconnect();
+        sequenceLayoutObserver?.disconnect();
         createTrigger();
       });
-      heroLayoutObserver.observe(frameSequence.parentElement, {
+      sequenceLayoutObserver.observe(section.parentElement, {
         childList: true,
       });
     }
@@ -187,7 +195,7 @@ export function OpenRoadSteps() {
       }
       window.removeEventListener("pageshow", refreshAfterPageRestore);
       window.removeEventListener("pagehide", saveScrollPosition);
-      heroLayoutObserver?.disconnect();
+      sequenceLayoutObserver?.disconnect();
       context?.revert();
     };
   }, []);

@@ -15,7 +15,7 @@ const PREFETCH_BEHIND = 3;
 gsap.registerPlugin(ScrollTrigger);
 
 function getFrameUrl(frame: number) {
-  return `/section1/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/section1-gwr-frames/frame_${String(frame).padStart(3, "0")}.jpg`;
 }
 
 export function FrameSequenceHero() {
@@ -71,9 +71,34 @@ export function FrameSequenceHero() {
       targetContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       targetContext.clearRect(0, 0, bounds.width, bounds.height);
 
-      const scale = Math.min(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
-      const imageWidth = image.naturalWidth * scale;
-      const imageHeight = image.naturalHeight * scale;
+      if (window.matchMedia("(max-width: 700px)").matches) {
+        const backgroundScale = Math.max(
+          bounds.width / image.naturalWidth,
+          bounds.height / image.naturalHeight,
+        );
+        const backgroundWidth = image.naturalWidth * backgroundScale;
+        const backgroundHeight = image.naturalHeight * backgroundScale;
+
+        targetContext.save();
+        targetContext.filter = "blur(28px) brightness(0.45)";
+        targetContext.drawImage(
+          image,
+          (bounds.width - backgroundWidth) / 2,
+          (bounds.height - backgroundHeight) / 2,
+          backgroundWidth,
+          backgroundHeight,
+        );
+        targetContext.restore();
+        targetContext.imageSmoothingEnabled = true;
+        targetContext.imageSmoothingQuality = "high";
+      }
+
+      const fittedScale = Math.min(
+        bounds.width / image.naturalWidth,
+        bounds.height / image.naturalHeight,
+      );
+      const imageWidth = image.naturalWidth * fittedScale;
+      const imageHeight = image.naturalHeight * fittedScale;
       targetContext.drawImage(
         image,
         (bounds.width - imageWidth) / 2,
@@ -200,7 +225,8 @@ export function FrameSequenceHero() {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => `+=${window.innerHeight * 2}`,
+          end: () =>
+            `+=${window.innerHeight * (window.matchMedia("(max-width: 767px)").matches ? 1.5 : 2)}`,
           pin: true,
           scrub: true,
           invalidateOnRefresh: true,

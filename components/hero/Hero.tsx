@@ -52,32 +52,53 @@ export function Hero() {
       }
 
       const entrance = gsap.timeline({ defaults: { ease: "power3.out" } });
-      entrance
-        .fromTo(
-          "[data-hero-eyebrow]",
+      const eyebrow = hero.querySelectorAll<HTMLElement>("[data-hero-eyebrow]");
+      if (eyebrow.length) {
+        entrance.fromTo(
+          eyebrow,
           { autoAlpha: 0, y: 14 },
           { autoAlpha: 1, y: 0, duration: 0.56 },
-        )
-        .fromTo(
-          "[data-hero-heading-line]",
+        );
+      }
+
+      const headingLines = hero.querySelectorAll<HTMLElement>(
+        "[data-hero-heading-line]",
+      );
+      if (headingLines.length) {
+        entrance.fromTo(
+          headingLines,
           { autoAlpha: 0, yPercent: 110 },
           { autoAlpha: 1, yPercent: 0, duration: 0.84, stagger: 0.11 },
           "-=0.18",
-        )
-        .fromTo(
-          "[data-hero-controls]",
+        );
+      }
+
+      const controls = hero.querySelectorAll<HTMLElement>(
+        "[data-hero-controls]",
+      );
+      if (controls.length) {
+        entrance.fromTo(
+          controls,
           { autoAlpha: 0, y: 16 },
           { autoAlpha: 1, y: 0, duration: 0.58 },
           "-=0.28",
-        )
-        .fromTo(
-          "[data-hero-stats]",
+        );
+      }
+
+      const stats = hero.querySelectorAll<HTMLElement>("[data-hero-stats]");
+      if (stats.length) {
+        entrance.fromTo(
+          stats,
           { autoAlpha: 0, y: 12 },
           { autoAlpha: 1, y: 0, duration: 0.5 },
           "-=0.18",
-        )
-        .fromTo(
-          artwork.querySelector("[data-hero-frame]"),
+        );
+      }
+
+      const heroFrame = artwork.querySelector<HTMLElement>("[data-hero-frame]");
+      if (heroFrame) {
+        entrance.fromTo(
+          heroFrame,
           {
             autoAlpha: 0,
             x: 100,
@@ -95,19 +116,32 @@ export function Hero() {
             ease: "power3.out",
           },
           "-=0.42",
-        )
-        .fromTo(
-          "[data-hero-floating]",
+        );
+      }
+
+      const floatingNotes = hero.querySelectorAll<HTMLElement>(
+        "[data-hero-floating]",
+      );
+      if (floatingNotes.length) {
+        entrance.fromTo(
+          floatingNotes,
           { autoAlpha: 0, y: 12 },
           { autoAlpha: 1, y: 0, duration: 0.54 },
           "-=0.52",
-        )
-        .fromTo(
-          "[data-hero-booking]",
+        );
+      }
+
+      const booking = hero.querySelectorAll<HTMLElement>(
+        "[data-hero-booking]",
+      );
+      if (booking.length) {
+        entrance.fromTo(
+          booking,
           { autoAlpha: 0, y: 24 },
           { autoAlpha: 1, y: 0, duration: 0.72 },
           "-=0.32",
         );
+      }
 
       gsap.to(vehicleElement, {
         y: -8,
@@ -120,8 +154,11 @@ export function Hero() {
 
       const scrollAnimation = gsap
         .timeline({ defaults: { ease: "none" } })
-        .to(vehicleElement, { y: -16, autoAlpha: 0.94 }, 0)
-        .to("[data-hero-heading]", { y: -10 }, 0);
+        .to(vehicleElement, { y: -16, autoAlpha: 0.94 }, 0);
+      const heading = hero.querySelectorAll<HTMLElement>("[data-hero-heading]");
+      if (heading.length) {
+        scrollAnimation.to(heading, { y: -10 }, 0);
+      }
 
       ScrollTrigger.create({
         animation: scrollAnimation,
