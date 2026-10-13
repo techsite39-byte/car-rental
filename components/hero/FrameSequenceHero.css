@@ -32,3 +32,12 @@
 .frame-sequence--ready .frame-sequence__canvas {
   opacity: 1;
 }
+
+@media (max-width: 700px) {
+  .frame-sequence {
+    height: min(72vw, 56svh);
+    min-height: min(13rem, 56svh);
+    max-height: 18rem;
+    border-bottom: 1px solid rgb(255 255 255 / 8%);
+  }
+}
