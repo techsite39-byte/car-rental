@@ -4,10 +4,10 @@ import Image from "next/image";
 import { useScrollFrameSequence } from "@/components/hero/useScrollFrameSequence";
 import "./FrameSequenceHero.css";
 
-const FRAME_COUNT = 150;
+const FRAME_COUNT = 240;
 
 function getFrameUrl(frame: number) {
-  return `/section1-gwr-frames/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/frame1/frame_${String(frame).padStart(3, "0")}.jpg`;
 }
 
 export function FrameSequenceHero() {
@@ -15,8 +15,9 @@ export function FrameSequenceHero() {
     frameCount: FRAME_COUNT,
     initialFrame: 1,
     getFrameUrl,
-    mobileCacheSize: 14,
-    desktopCacheSize: 14,
+    mobileCacheSize: 20,
+    desktopCacheSize: 32,
+    priority: true,
   });
 
   return (
@@ -26,16 +27,17 @@ export function FrameSequenceHero() {
       ref={sectionRef}
     >
       <Image
-        alt=""
+        alt="BMW automotive showcase"
         className="frame-sequence__fallback"
         decoding="async"
         draggable={false}
         fetchPriority="high"
-        height={720}
+        height={1080}
+        priority
         ref={fallbackRef}
         src={getFrameUrl(1)}
         unoptimized
-        width={1280}
+        width={1920}
       />
       <canvas
         aria-hidden="true"

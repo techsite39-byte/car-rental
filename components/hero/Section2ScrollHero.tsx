@@ -1,23 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useScrollFrameSequence } from "@/components/hero/useScrollFrameSequence";
+import { useSection2Animation } from "@/components/hero/useSection2Animation";
 import "./Section2ScrollHero.css";
 
-const FRAME_COUNT = 150;
-
-function getFrameUrl(frame: number) {
-  return `/section2/frame_${String(frame + 1).padStart(3, "0")}.jpg`;
-}
-
 export function Section2ScrollHero() {
-  const { sectionRef, canvasRef, fallbackRef, isReady } = useScrollFrameSequence({
-    frameCount: FRAME_COUNT,
-    initialFrame: 0,
-    getFrameUrl,
-    mobileCacheSize: 18,
-    desktopCacheSize: 24,
-  });
+  const { sectionRef, canvasRef, fallbackRef, isReady } = useSection2Animation();
 
   return (
     <section
@@ -26,14 +14,15 @@ export function Section2ScrollHero() {
       ref={sectionRef}
     >
       <Image
-        alt=""
+        alt="BMW cinematic journey sequence"
         className="section2-sequence__fallback"
         decoding="async"
         draggable={false}
         fetchPriority="high"
         height={720}
+        priority
         ref={fallbackRef}
-        src={getFrameUrl(0)}
+        src="/section2/frame_001.jpg"
         unoptimized
         width={1280}
       />
