@@ -84,8 +84,8 @@ export function useScrollFrameSequence({
 
     const maxCacheSize = mobileQuery.matches ? mobileCacheSize : desktopCacheSize;
     const maxConcurrentLoads = mobileQuery.matches ? 2 : 4;
-    const prefetchAhead = mobileQuery.matches ? 10 : 16;
-    const prefetchBehind = 4;
+    const prefetchAhead = mobileQuery.matches ? 14 : 20;
+    const prefetchBehind = 5;
 
     // Dimension precalculation: responsive cover presentation (object-fit: cover equivalent)
     // Frame 1 source resolution is 1920x1080 (16:9)
@@ -93,7 +93,7 @@ export function useScrollFrameSequence({
       if (!canvas || rectWidth <= 0 || rectHeight <= 0) return;
 
       const isMobile = mobileQuery.matches;
-      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2.0);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -135,7 +135,7 @@ export function useScrollFrameSequence({
       if (exact) return exact;
 
       // Check adjacent frames outward
-      for (let offset = 1; offset <= 25; offset++) {
+      for (let offset = 1; offset <= 30; offset++) {
         const prev = target - offset;
         if (prev >= 1) {
           const pImg = getLoadedFrame(prev);
@@ -154,7 +154,17 @@ export function useScrollFrameSequence({
       const kImg = getLoadedFrame(clampedKeyframe);
       if (kImg) return kImg;
 
-      return null;
+      // Check outward across all keyframes
+      for (let k = 1; k <= Math.ceil(frameCount / KEYFRAME_INTERVAL); k++) {
+        const kp = Math.max(1, clampedKeyframe - k * KEYFRAME_INTERVAL);
+        const kpImg = getLoadedFrame(kp);
+        if (kpImg) return kpImg;
+        const kn = Math.min(frameCount, clampedKeyframe + k * KEYFRAME_INTERVAL);
+        const knImg = getLoadedFrame(kn);
+        if (knImg) return knImg;
+      }
+
+      return getLoadedFrame(1);
     }
 
     // Ultra-fast draw: 0.1ms execution, GPU accelerated
@@ -288,10 +298,14 @@ export function useScrollFrameSequence({
     // Initial Load & Background Keyframe Spine Preloader
     // =========================================================================
 
-    // 1. Eagerly load initial frames (1..15)
+    // 1. Eagerly load initial frames (1..15) and final frame (frameCount)
     for (let f = 1; f <= 15; f++) {
       queuedSet.add(f);
       loadQueue.push(f);
+    }
+    if (!queuedSet.has(frameCount)) {
+      queuedSet.add(frameCount);
+      loadQueue.push(frameCount);
     }
     processQueue();
 
@@ -310,7 +324,7 @@ export function useScrollFrameSequence({
         }
       }
       processQueue();
-    }, 200);
+    }, 120);
 
     // =========================================================================
     // Decoupled RequestAnimationFrame Render Loop with Smooth Damping
@@ -327,7 +341,7 @@ export function useScrollFrameSequence({
       if (reducedMotionQuery.matches) {
         currentProgressRef.current = target;
       } else if (Math.abs(diff) > 0.0001) {
-        const damping = mobileQuery.matches ? 0.16 : 0.12;
+        const damping = mobileQuery.matches ? 0.22 : 0.18;
         currentProgressRef.current += diff * damping;
       } else {
         currentProgressRef.current = target;
@@ -374,7 +388,7 @@ export function useScrollFrameSequence({
     ScrollTrigger.config({ ignoreMobileResize: true });
 
     const isMobile = mobileQuery.matches;
-    const scrollDistance = window.innerHeight * (isMobile ? 1.5 : 2.0);
+    const scrollDistance = window.innerHeight * (isMobile ? 1.8 : 2.2);
 
     const trigger = ScrollTrigger.create({
       trigger: section,

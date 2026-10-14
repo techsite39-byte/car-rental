@@ -4,10 +4,10 @@ import Image from "next/image";
 import { useScrollFrameSequence } from "@/components/hero/useScrollFrameSequence";
 import "./FrameSequenceHero.css";
 
-const FRAME_COUNT = 240;
+const FRAME_COUNT = 150;
 
 function getFrameUrl(frame: number) {
-  return `/frame1/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/framenew1/frame_${String(frame).padStart(3, "0")}.jpg`;
 }
 
 export function FrameSequenceHero() {
@@ -15,8 +15,8 @@ export function FrameSequenceHero() {
     frameCount: FRAME_COUNT,
     initialFrame: 1,
     getFrameUrl,
-    mobileCacheSize: 20,
-    desktopCacheSize: 32,
+    mobileCacheSize: 30,
+    desktopCacheSize: 60,
     priority: true,
   });
 

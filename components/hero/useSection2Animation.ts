@@ -7,9 +7,8 @@ import { useEffect, useRef, useState } from "react";
 gsap.registerPlugin(ScrollTrigger);
 
 const FRAME_COUNT = 750;
-const KEYFRAME_INTERVAL = 10;
+const KEYFRAME_INTERVAL = 25;
 const MOBILE_QUERY = "(max-width: 700px)";
-const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 function getFrameUrl(frame: number): string {
   return `/section2/frame_${String(frame).padStart(3, "0")}.jpg`;
@@ -20,8 +19,6 @@ interface DrawParams {
   y: number;
   width: number;
   height: number;
-  canvasWidth: number;
-  canvasHeight: number;
 }
 
 export function useSection2Animation() {
@@ -30,58 +27,59 @@ export function useSection2Animation() {
   const fallbackRef = useRef<HTMLImageElement>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // High-performance mutable references — ZERO React re-renders during scroll
-  const targetProgressRef = useRef(0);
-  const currentProgressRef = useRef(0);
+  // Mutable refs: ZERO React re-renders during scrolling
   const renderedFrameRef = useRef(-1);
   const isReadyRef = useRef(false);
-  const drawParamsRef = useRef<DrawParams>({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    canvasWidth: 0,
-    canvasHeight: 0,
-  });
 
   useEffect(() => {
-    const canvas = canvasRef.current;
     const section = sectionRef.current;
-    if (!canvas || !section) return;
+    const canvas = canvasRef.current;
+    if (!section || !canvas) return;
 
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
     let disposed = false;
+    let ticking = false;
     let rafId = 0;
-    let isLoopRunning = false;
+    let latestScrollY = window.scrollY || window.pageYOffset || 0;
+    let currentTargetFrame = 1;
+    let lastTargetFrame = 1;
+    let lastRequestedCenter = -1;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
-    const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
+    const isMobile = mobileQuery.matches;
 
-    // Frame caches:
-    // 1. Sliding window cache for smooth sequential playback around active scroll position
-    const slidingCache = new Map<number, HTMLImageElement>();
-    // 2. Keyframe spine (every 10th frame) to guarantee instant fallback during fast scrolling
+    // Cache sizing and load limits
+    const maxSlidingCacheSize = isMobile ? 45 : 90;
+    const maxConcurrentLoads = isMobile ? 3 : 5;
+    const prefetchAhead = isMobile ? 18 : 28;
+    const prefetchBehind = isMobile ? 6 : 10;
+
+    // Caches:
+    // 1. Permanent keyframe spine (every 25th frame: ~31 frames total)
     const keyframeCache = new Map<number, HTMLImageElement>();
-    // In-flight loads
+    // 2. Sliding window cache for smooth sequential scrubbing
+    const slidingCache = new Map<number, HTMLImageElement>();
+    // 3. In-flight loads
     const inFlight = new Map<number, HTMLImageElement>();
-    // Queue of requested frames
+    // 4. Queued frame requests
     const loadQueue: number[] = [];
     const queuedSet = new Set<number>();
     let activeLoads = 0;
 
-    const maxCacheSize = mobileQuery.matches ? 40 : 80;
-    const maxConcurrentLoads = mobileQuery.matches ? 2 : 4;
-    const prefetchAhead = mobileQuery.matches ? 12 : 18;
-    const prefetchBehind = 4;
+    // Cached layout measurements (updated ONLY on refresh/resize, NOT in scroll loop)
+    let cachedStart = 0;
+    let cachedDistance = 1;
 
-    // Dimension precalculation: responsive cover presentation (object-fit: cover equivalent)
+    let drawParams: DrawParams = { x: 0, y: 0, width: 0, height: 0 };
+
     function updateDimensions(rectWidth: number, rectHeight: number) {
-      if (!canvas || rectWidth <= 0 || rectHeight <= 0) return;
+      if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      const isMobile = mobileQuery.matches;
-      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.25 : 1.5);
+      const isMob = mobileQuery.matches;
+      // Cap DPR to avoid excessive GPU memory fillrate on mobile high-DPI screens
+      const dpr = Math.min(window.devicePixelRatio || 1, isMob ? 1.25 : 1.5);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -90,20 +88,18 @@ export function useSection2Animation() {
         canvas.height = ch;
       }
 
-      // Aspect cover calculation (1280x720 source)
+      // Exact aspect cover presentation matching 1280x720 source
       const scale = Math.max(cw / 1280, ch / 720);
       const dw = Math.round(1280 * scale);
       const dh = Math.round(720 * scale);
       const dx = Math.round((cw - dw) / 2);
       const dy = Math.round((ch - dh) / 2);
 
-      drawParamsRef.current = {
+      drawParams = {
         x: dx,
         y: dy,
         width: dw,
         height: dh,
-        canvasWidth: cw,
-        canvasHeight: ch,
       };
 
       if (renderedFrameRef.current > 0) {
@@ -111,48 +107,56 @@ export function useSection2Animation() {
       }
     }
 
-    // Helper: find nearest loaded frame in sliding or keyframe cache in O(1)
-    function getLoadedFrame(frame: number): HTMLImageElement | null {
+    // Measure initial layout
+    const initialBounds = canvas.getBoundingClientRect();
+    updateDimensions(initialBounds.width, initialBounds.height);
+
+    // =========================================================================
+    // Fast O(1) Frame Drawing with Intelligent Nearest Fallback
+    // =========================================================================
+    function getReadyImage(frame: number): HTMLImageElement | null {
       const img = slidingCache.get(frame) || keyframeCache.get(frame);
       if (img && img.complete && img.naturalWidth > 0) return img;
       return null;
     }
 
     function findNearestLoadedFrame(target: number): HTMLImageElement | null {
-      const exact = getLoadedFrame(target);
+      const exact = getReadyImage(target);
       if (exact) return exact;
 
-      // Check adjacent frames outward
-      for (let offset = 1; offset <= 30; offset++) {
+      // Search outward up to 25 frames for the nearest loaded frame
+      for (let offset = 1; offset <= 25; offset++) {
         const prev = target - offset;
         if (prev >= 1) {
-          const pImg = getLoadedFrame(prev);
+          const pImg = getReadyImage(prev);
           if (pImg) return pImg;
         }
         const next = target + offset;
         if (next <= FRAME_COUNT) {
-          const nImg = getLoadedFrame(next);
+          const nImg = getReadyImage(next);
           if (nImg) return nImg;
         }
       }
 
       // Check nearest keyframe
-      const nearestKeyframe = Math.round(target / KEYFRAME_INTERVAL) * KEYFRAME_INTERVAL;
-      const clampedKeyframe = Math.max(1, Math.min(FRAME_COUNT, nearestKeyframe));
-      const kImg = getLoadedFrame(clampedKeyframe);
-      if (kImg) return kImg;
+      const nearestKf = Math.max(
+        1,
+        Math.min(FRAME_COUNT, Math.round(target / KEYFRAME_INTERVAL) * KEYFRAME_INTERVAL)
+      );
+      const kfImg = getReadyImage(nearestKf);
+      if (kfImg) return kfImg;
 
-      return null;
+      // Safe fallbacks to prevent any black/blank frame
+      return getReadyImage(1) || getReadyImage(FRAME_COUNT);
     }
 
-    // Ultra-fast draw: 0.1ms execution, GPU accelerated
     function drawFrame(frameIndex: number) {
       if (!ctx || disposed) return;
 
       const img = findNearestLoadedFrame(frameIndex);
       if (!img || !img.complete || img.naturalWidth === 0) return;
 
-      const { x, y, width: dw, height: dh } = drawParamsRef.current;
+      const { x, y, width: dw, height: dh } = drawParams;
       if (dw <= 0 || dh <= 0) return;
 
       ctx.drawImage(img, x, y, dw, dh);
@@ -164,28 +168,22 @@ export function useSection2Animation() {
       }
     }
 
-    // Measure initial bounds
-    const bounds = canvas.getBoundingClientRect();
-    updateDimensions(bounds.width, bounds.height);
-
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      if (entry) updateDimensions(entry.contentRect.width, entry.contentRect.height);
-    });
-    resizeObserver.observe(canvas);
-
     // =========================================================================
-    // Intelligent Cache Manager & Decoupled Async Loader
+    // Memory-Bounded Cache Manager & Async Decode Pipeline
     // =========================================================================
-    function trimCache(currentFrame: number) {
-      if (slidingCache.size <= maxCacheSize) return;
+    function trimCache(currentCenter: number) {
+      // Hysteresis: only trim when cache exceeds limit by threshold to avoid frequent sorting
+      if (slidingCache.size <= maxSlidingCacheSize + 10) return;
 
-      const sortedByDistance = [...slidingCache.keys()]
-        .filter((f) => f !== currentFrame)
-        .sort((a, b) => Math.abs(b - currentFrame) - Math.abs(a - currentFrame));
+      const keys = Array.from(slidingCache.keys());
+      keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
 
-      while (slidingCache.size > maxCacheSize && sortedByDistance.length) {
-        const frameToRemove = sortedByDistance.shift();
-        if (frameToRemove !== undefined) {
+      const removeCount = slidingCache.size - maxSlidingCacheSize;
+      for (let i = 0; i < removeCount; i++) {
+        const frameToRemove = keys[i];
+        const oldImg = slidingCache.get(frameToRemove);
+        if (oldImg) {
+          oldImg.src = ""; // Force browser to immediately release GPU bitmap memory
           slidingCache.delete(frameToRemove);
         }
       }
@@ -208,29 +206,44 @@ export function useSection2Animation() {
         inFlight.set(frame, img);
         activeLoads++;
 
-        img.onload = () => {
+        const onFrameLoaded = () => {
           inFlight.delete(frame);
           activeLoads--;
           if (disposed) return;
 
-          slidingCache.set(frame, img);
-          if (frame % KEYFRAME_INTERVAL === 0 || frame === 1 || frame === FRAME_COUNT) {
-            keyframeCache.set(frame, img);
-          }
+          if (img.naturalWidth > 0) {
+            const isKeyframe =
+              frame % KEYFRAME_INTERVAL === 0 || frame === 1 || frame === FRAME_COUNT;
 
-          // Trim cache only on additions
-          const currentTarget = Math.min(
-            FRAME_COUNT,
-            Math.max(1, Math.round(1 + currentProgressRef.current * (FRAME_COUNT - 1)))
-          );
-          trimCache(currentTarget);
+            if (isKeyframe) {
+              keyframeCache.set(frame, img);
+            } else {
+              slidingCache.set(frame, img);
+              trimCache(currentTargetFrame);
+            }
 
-          // If the newly loaded frame is what we are waiting for or close to it, re-render
-          if (Math.abs(frame - currentTarget) <= 1 && renderedFrameRef.current !== frame) {
-            drawFrame(currentTarget);
+            // If the newly ready frame is what the user is actively viewing, re-render
+            if (
+              Math.abs(frame - currentTargetFrame) <= 2 &&
+              renderedFrameRef.current !== currentTargetFrame
+            ) {
+              if (!ticking) {
+                ticking = true;
+                rafId = requestAnimationFrame(updateSection2);
+              }
+            }
           }
 
           processQueue();
+        };
+
+        img.onload = () => {
+          // Off-main-thread image decoding prevents main-thread draw stalls
+          if ("decode" in img) {
+            img.decode().then(onFrameLoaded).catch(onFrameLoaded);
+          } else {
+            onFrameLoaded();
+          }
         };
 
         img.onerror = () => {
@@ -244,10 +257,8 @@ export function useSection2Animation() {
       }
     }
 
-    let lastRequestedCenter = -1;
-
     function requestFramesAround(centerFrame: number, scrollDir: number) {
-      if (centerFrame === lastRequestedCenter) return;
+      if (centerFrame === lastRequestedCenter && loadQueue.length > 0) return;
       lastRequestedCenter = centerFrame;
 
       const dir = scrollDir >= 0 ? 1 : -1;
@@ -262,8 +273,26 @@ export function useSection2Animation() {
         if (f >= 1 && f <= FRAME_COUNT) ordered.push(f);
       }
 
-      for (const f of ordered) {
-        if (!slidingCache.has(f) && !inFlight.has(f) && !queuedSet.has(f)) {
+      // Purge requests from queue that are now far from current target (> 40 frames away)
+      if (loadQueue.length > 30) {
+        for (let i = loadQueue.length - 1; i >= 0; i--) {
+          const queued = loadQueue[i];
+          if (Math.abs(queued - centerFrame) > 40) {
+            queuedSet.delete(queued);
+            loadQueue.splice(i, 1);
+          }
+        }
+      }
+
+      // Insert high-priority frames at the front of loadQueue
+      for (let i = ordered.length - 1; i >= 0; i--) {
+        const f = ordered[i];
+        if (
+          !slidingCache.has(f) &&
+          !keyframeCache.has(f) &&
+          !inFlight.has(f) &&
+          !queuedSet.has(f)
+        ) {
           queuedSet.add(f);
           loadQueue.unshift(f);
         }
@@ -273,28 +302,31 @@ export function useSection2Animation() {
     }
 
     // =========================================================================
-    // Initial Load & Background Keyframe Spine Preloader
+    // Initial Load & Background Keyframe Spine
     // =========================================================================
 
-    // 1. Eagerly load initial frames (1..15)
+    // 1. Immediately request initial frames (1..15) and final frame
     for (let f = 1; f <= 15; f++) {
       queuedSet.add(f);
       loadQueue.push(f);
     }
+    if (!queuedSet.has(FRAME_COUNT)) {
+      queuedSet.add(FRAME_COUNT);
+      loadQueue.push(FRAME_COUNT);
+    }
     processQueue();
 
-    // 2. Progressively prefetch keyframes across all 3 parts in idle chunks
-    // Part 1: frames 1..300
-    // Part 2: frames 301..600
-    // Part 3: frames 601..750
-    const keyframeBatches = [
-      Array.from({ length: 30 }, (_, i) => (i + 1) * 10),
-      Array.from({ length: 30 }, (_, i) => 300 + (i + 1) * 10),
-      Array.from({ length: 15 }, (_, i) => 600 + (i + 1) * 10),
-    ];
+    // 2. Progressive background keyframe spine in small batches
+    const keyframes = Array.from(
+      { length: Math.floor(FRAME_COUNT / KEYFRAME_INTERVAL) },
+      (_, i) => (i + 1) * KEYFRAME_INTERVAL
+    );
 
     const timeouts: NodeJS.Timeout[] = [];
-    keyframeBatches.forEach((batch, batchIndex) => {
+    const batchSize = 6;
+    for (let i = 0; i < keyframes.length; i += batchSize) {
+      const batch = keyframes.slice(i, i + batchSize);
+      const batchIndex = Math.floor(i / batchSize);
       const t = setTimeout(() => {
         if (disposed) return;
         for (const kf of batch) {
@@ -304,107 +336,131 @@ export function useSection2Animation() {
           }
         }
         processQueue();
-      }, 200 + batchIndex * 500);
+      }, 150 + batchIndex * 250);
       timeouts.push(t);
-    });
+    }
 
     // =========================================================================
-    // Decoupled RequestAnimationFrame Render Loop with Smooth Damping
+    // ONE Passive Scroll Listener + ONE RequestAnimationFrame Pipeline
     // =========================================================================
-    let prevFrame = 1;
-
-    function tick() {
+    function updateSection2() {
+      ticking = false;
       if (disposed) return;
 
-      const target = targetProgressRef.current;
-      const current = currentProgressRef.current;
-      const diff = target - current;
+      // 1. Calculate progress from latest scroll position and cached dimensions (0 to 1)
+      const scrollOffset = latestScrollY - cachedStart;
+      const progress = Math.max(0, Math.min(1, scrollOffset / cachedDistance));
 
-      if (reducedMotionQuery.matches) {
-        currentProgressRef.current = target;
-      } else if (Math.abs(diff) > 0.0001) {
-        const damping = mobileQuery.matches ? 0.16 : 0.12;
-        currentProgressRef.current += diff * damping;
-      } else {
-        currentProgressRef.current = target;
-      }
-
-      const progress = currentProgressRef.current;
+      // 2. Numerical mapping directly from progress to frame [1 .. FRAME_COUNT]
       const targetFrame = Math.min(
         FRAME_COUNT,
         Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1)))
       );
 
-      const scrollDir = targetFrame >= prevFrame ? 1 : -1;
-      prevFrame = targetFrame;
+      currentTargetFrame = targetFrame;
+      const scrollDir = targetFrame >= lastTargetFrame ? 1 : -1;
+      lastTargetFrame = targetFrame;
 
-      if (targetFrame !== lastRequestedCenter) {
-        requestFramesAround(targetFrame, scrollDir);
-      }
+      // 3. Request prefetching around target
+      requestFramesAround(targetFrame, scrollDir);
 
+      // 4. Draw frame if changed
       if (targetFrame !== renderedFrameRef.current) {
         drawFrame(targetFrame);
       }
-
-      // Idle sleep optimization: if settled, stop rAF loop to release CPU/GPU
-      if (Math.abs(diff) <= 0.0001 && targetFrame === renderedFrameRef.current) {
-        isLoopRunning = false;
-        return;
-      }
-
-      rafId = requestAnimationFrame(tick);
     }
 
-    function wakeRenderLoop() {
-      if (!isLoopRunning && !disposed) {
-        isLoopRunning = true;
-        rafId = requestAnimationFrame(tick);
+    function onScroll() {
+      latestScrollY = window.scrollY || window.pageYOffset || 0;
+      if (!ticking) {
+        ticking = true;
+        rafId = requestAnimationFrame(updateSection2);
       }
     }
 
-    wakeRenderLoop();
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     // =========================================================================
-    // GSAP ScrollTrigger Integration (Pinned Smooth Scrub Timeline)
+    // GSAP Context with ScrollTrigger Pinning
     // =========================================================================
     ScrollTrigger.config({ ignoreMobileResize: true });
 
-    const isMobile = mobileQuery.matches;
     const scrollDistance = window.innerHeight * (isMobile ? 3.0 : 4.2);
 
-    const trigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: () => `+=${scrollDistance}`,
-      pin: section,
-      pinSpacing: true,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        targetProgressRef.current = self.progress;
-        wakeRenderLoop();
-      },
-      onRefresh: (self) => {
-        targetProgressRef.current = self.progress;
-        wakeRenderLoop();
-      },
+    const ctxGsap = gsap.context(() => {
+      const trigger = ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: () => `+=${scrollDistance}`,
+        pin: section,
+        pinSpacing: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        onRefresh: (self) => {
+          cachedStart = self.start;
+          cachedDistance = Math.max(1, self.end - self.start);
+          if (!ticking && !disposed) {
+            ticking = true;
+            rafId = requestAnimationFrame(updateSection2);
+          }
+        },
+      });
+
+      cachedStart = trigger.start;
+      cachedDistance = Math.max(1, trigger.end - trigger.start);
+    }, section);
+
+    // Initial draw
+    updateSection2();
+
+    function handleResize() {
+      if (disposed) return;
+      const rect = canvas ? canvas.getBoundingClientRect() : null;
+      if (rect) {
+        updateDimensions(rect.width, rect.height);
+      }
+      updateSection2();
+    }
+
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleResize, { passive: true });
+
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      if (entry && !disposed) {
+        updateDimensions(entry.contentRect.width, entry.contentRect.height);
+      }
     });
+    resizeObserver.observe(canvas);
 
     return () => {
       disposed = true;
       timeouts.forEach((t) => clearTimeout(t));
       cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
       resizeObserver.disconnect();
-      trigger.kill();
+
+      // Cleanly revert GSAP DOM modifications before React reconciliation
+      ctxGsap.revert();
 
       for (const img of inFlight.values()) {
         img.src = "";
       }
       inFlight.clear();
+
+      for (const img of slidingCache.values()) {
+        img.src = "";
+      }
+      slidingCache.clear();
+
+      for (const img of keyframeCache.values()) {
+        img.src = "";
+      }
+      keyframeCache.clear();
+
       loadQueue.length = 0;
       queuedSet.clear();
-      slidingCache.clear();
-      keyframeCache.clear();
     };
   }, []);
 

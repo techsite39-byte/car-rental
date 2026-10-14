@@ -1,7 +1,6 @@
 .section2-sequence {
   position: relative;
   width: 100%;
-  width: 100vw;
   max-width: 100%;
   height: 100vh;
   height: 100svh;
@@ -11,8 +10,7 @@
   overflow: hidden;
   isolation: isolate;
   background: var(--background, #070807);
-  contain: paint;
-  will-change: transform;
+  contain: paint layout size;
 }
 
 .section2-sequence__fallback,
@@ -22,7 +20,6 @@
   display: block;
   width: 100%;
   height: 100%;
-  will-change: transform, opacity;
   transform: translateZ(0);
 }
 
@@ -45,4 +42,3 @@
 .section2-sequence--ready .section2-sequence__canvas {
   opacity: 1;
 }
-
