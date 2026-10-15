@@ -42,3 +42,167 @@
 .section2-sequence--ready .section2-sequence__canvas {
   opacity: 1;
 }
+
+@media (max-width: 768px) {
+  .section2-sequence__fallback {
+    object-position: 52% center;
+  }
+}
+
+/* =========================================================================
+   Cinematic Editorial Text Overlay Layer
+   ========================================================================= */
+
+.section2-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.section2-text-scene {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 18px, 0);
+  will-change: opacity, transform;
+  pointer-events: none;
+}
+
+/* Top-Left placement (Scenes 1, 3, 4, 5, 6) — sits in clean atmospheric studio negative space */
+.section2-text-scene--top-left {
+  top: clamp(80px, 20vh, 220px);
+  left: clamp(24px, 7.5vw, 120px);
+  max-width: clamp(320px, 46vw, 620px);
+  text-align: left;
+  align-items: flex-start;
+}
+
+/* Top-Right placement (Scene 2 side-profile) — sits in clean dark upper studio space */
+.section2-text-scene--top-right {
+  top: clamp(75px, 17vh, 190px);
+  right: clamp(24px, 7.5vw, 120px);
+  max-width: clamp(320px, 46vw, 620px);
+  text-align: right;
+  align-items: flex-end;
+}
+
+.section2-text__eyebrow {
+  font-family: var(--font-family-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+.section2-text__headline {
+  font-family: var(--font-family-sans);
+  font-size: clamp(30px, 4.2vw, 68px);
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.45);
+}
+
+.section2-text__supporting {
+  font-family: var(--font-family-sans);
+  font-size: clamp(13px, 1.05vw, 16px);
+  font-weight: 300;
+  line-height: 1.55;
+  letter-spacing: 0.05em;
+  color: rgba(240, 242, 245, 0.72);
+  margin: 0;
+  max-width: 38ch;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+}
+
+.section2-text__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 13px 30px;
+  font-family: var(--font-family-sans);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: none; /* enabled dynamically via script when visible */
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.section2-text__cta:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.section2-text__cta svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s ease;
+}
+
+.section2-text__cta:hover svg {
+  transform: translateX(3px);
+}
+
+/* =========================================================================
+   Mobile Optimization
+   ========================================================================= */
+
+@media (max-width: 768px) {
+  .section2-text-scene--top-left {
+    top: max(85px, 13vh);
+    left: 6vw;
+    right: 6vw;
+    max-width: calc(100vw - 12vw);
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .section2-text-scene--top-right {
+    top: max(75px, 12vh);
+    left: 6vw;
+    right: 6vw;
+    max-width: calc(100vw - 12vw);
+    text-align: right;
+    align-items: flex-end;
+  }
+
+  .section2-text__headline {
+    font-size: clamp(24px, 7.5vw, 38px);
+    letter-spacing: 0.08em;
+    line-height: 1.04;
+  }
+
+  .section2-text__supporting {
+    font-size: 13px;
+    line-height: 1.45;
+    max-width: 32ch;
+  }
+
+  .section2-text__cta {
+    padding: 11px 24px;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+  }
+}

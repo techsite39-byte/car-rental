@@ -88,7 +88,7 @@ export function useScrollFrameSequence({
     const prefetchBehind = 5;
 
     // Dimension precalculation: responsive cover presentation (object-fit: cover equivalent)
-    // Frame 1 source resolution is 1920x1080 (16:9)
+    // Frame 1 source resolution is 1280x720 (16:9)
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0) return;
 
@@ -102,11 +102,18 @@ export function useScrollFrameSequence({
         canvas.height = ch;
       }
 
-      // Aspect cover calculation (1920x1080 source)
-      const scale = Math.max(cw / 1920, ch / 1080);
-      const dw = Math.round(1920 * scale);
-      const dh = Math.round(1080 * scale);
-      const dx = Math.round((cw - dw) / 2);
+      // Aspect cover calculation (1280x720 source)
+      const scale = Math.max(cw / 1280, ch / 720);
+      const dw = Math.round(1280 * scale);
+      const dh = Math.round(720 * scale);
+
+      // Responsive horizontal alignment:
+      // On wide desktop/tablet landscape (aspect >= 1.2), center horizontally (0.50).
+      // On narrow mobile portrait displays (aspect < 1.2, e.g. 9:16 ~ 0.56),
+      // adjust slightly to 0.54 to keep the sculpted BMW headlights, nose, and body lines perfectly framed.
+      const aspect = rectWidth / rectHeight;
+      const alignX = aspect >= 1.2 ? 0.5 : 0.5 + Math.min(0.04, (1.2 - aspect) * 0.05);
+      const dx = Math.round((cw - dw) * alignX);
       const dy = Math.round((ch - dh) / 2);
 
       drawParamsRef.current = {
@@ -230,7 +237,7 @@ export function useScrollFrameSequence({
         inFlight.set(frame, img);
         activeLoads++;
 
-        img.onload = () => {
+        const handleLoaded = () => {
           inFlight.delete(frame);
           activeLoads--;
           if (disposed) return;
@@ -253,6 +260,14 @@ export function useScrollFrameSequence({
           }
 
           processQueue();
+        };
+
+        img.onload = () => {
+          if (typeof img.decode === "function") {
+            img.decode().then(handleLoaded).catch(handleLoaded);
+          } else {
+            handleLoaded();
+          }
         };
 
         img.onerror = () => {
@@ -341,7 +356,8 @@ export function useScrollFrameSequence({
       if (reducedMotionQuery.matches) {
         currentProgressRef.current = target;
       } else if (Math.abs(diff) > 0.0001) {
-        const damping = mobileQuery.matches ? 0.22 : 0.18;
+        // Snappy adaptive damping: responsive tracking on fast scroll, ultra smooth on fine adjustment
+        const damping = Math.min(1, Math.max(0.30, Math.abs(diff) * 3.0));
         currentProgressRef.current += diff * damping;
       } else {
         currentProgressRef.current = target;
@@ -408,11 +424,17 @@ export function useScrollFrameSequence({
       },
     });
 
+    const handleOrientation = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener("orientationchange", handleOrientation, { passive: true });
+
     return () => {
       disposed = true;
       clearTimeout(timer);
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
+      window.removeEventListener("orientationchange", handleOrientation);
       trigger.kill();
 
       for (const img of inFlight.values()) {

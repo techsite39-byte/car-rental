@@ -1,0 +1,181 @@
+.fleet-cinematic {
+  position: relative;
+  width: 100%;
+  max-width: 100vw;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--background, #070807);
+  contain: paint;
+  will-change: transform;
+}
+
+.fleet-cinematic__fallback,
+.fleet-cinematic__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.fleet-cinematic__fallback {
+  object-fit: cover;
+  object-position: center center;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fleet-cinematic__canvas {
+  opacity: 0;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fleet-cinematic--ready .fleet-cinematic__fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fleet-cinematic--ready .fleet-cinematic__canvas {
+  opacity: 1;
+}
+
+/* Subtle cinematic overlays */
+.fleet-cinematic__vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    transparent 50%,
+    rgba(7, 8, 7, 0.45) 100%
+  );
+  z-index: 2;
+}
+
+.fleet-cinematic__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.fleet-cinematic__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 1rem;
+  background: rgba(15, 18, 16, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  width: fit-content;
+  font-family: var(--font-body, system-ui, -apple-system, sans-serif);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.fleet-cinematic__indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.fleet-cinematic__scenes {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin-top: auto;
+}
+
+.fleet-cinematic__scene-card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  opacity: 0;
+  transform: translate3d(0, 16px, 0);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.fleet-cinematic__scene-card[data-active="true"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+}
+
+.fleet-cinematic__scene-eyebrow {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #3b82f6;
+  margin-bottom: 0.4rem;
+}
+
+.fleet-cinematic__scene-title {
+  font-family: var(--font-display, var(--font-heading, "Cinzel", serif));
+  font-size: clamp(1.4rem, 2.5vw, 2.2rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  color: #ffffff;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.fleet-cinematic__scene-desc {
+  font-size: clamp(0.8rem, 1.2vw, 0.95rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 42ch;
+}
+
+@media (max-width: 768px) {
+  .fleet-cinematic__overlay {
+    padding: 1.25rem;
+  }
+
+  .fleet-cinematic__scenes {
+    max-width: 100%;
+  }
+
+  .fleet-cinematic__scene-title {
+    font-size: 1.35rem;
+  }
+
+  .fleet-cinematic__scene-desc {
+    font-size: 0.8rem;
+  }
+}

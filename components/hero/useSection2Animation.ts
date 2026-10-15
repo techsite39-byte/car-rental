@@ -3,15 +3,16 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef, useState } from "react";
+import { SECTION2_TEXT_SCENES } from "@/components/hero/section2TextScenes";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FRAME_COUNT = 750;
-const KEYFRAME_INTERVAL = 25;
+const FRAME_COUNT = 420;
+const KEYFRAME_INTERVAL = 15;
 const MOBILE_QUERY = "(max-width: 700px)";
 
 function getFrameUrl(frame: number): string {
-  return `/section2/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/sec2/frame_${String(frame).padStart(3, "0")}.jpg`;
 }
 
 interface DrawParams {
@@ -25,6 +26,7 @@ export function useSection2Animation() {
   const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fallbackRef = useRef<HTMLImageElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
 
   // Mutable refs: ZERO React re-renders during scrolling
@@ -73,6 +75,12 @@ export function useSection2Animation() {
     let cachedDistance = 1;
 
     let drawParams: DrawParams = { x: 0, y: 0, width: 0, height: 0 };
+
+    // Cache text overlay DOM nodes
+    const overlay = overlayRef.current;
+    const sceneElements = overlay
+      ? Array.from(overlay.querySelectorAll<HTMLElement>("[data-text-scene]"))
+      : [];
 
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
@@ -138,6 +146,12 @@ export function useSection2Animation() {
         }
       }
 
+      // Check sequence boundary frames if nearby
+      if (target >= 265 && target <= 275) {
+        const bImg = getReadyImage(270) || getReadyImage(271);
+        if (bImg) return bImg;
+      }
+
       // Check nearest keyframe
       const nearestKf = Math.max(
         1,
@@ -147,19 +161,32 @@ export function useSection2Animation() {
       if (kfImg) return kfImg;
 
       // Safe fallbacks to prevent any black/blank frame
-      return getReadyImage(1) || getReadyImage(FRAME_COUNT);
+      return getReadyImage(1) || getReadyImage(270) || getReadyImage(FRAME_COUNT);
     }
 
     function drawFrame(frameIndex: number) {
-      if (!ctx || disposed) return;
+      if (!ctx || !canvas || disposed) return;
 
       const img = findNearestLoadedFrame(frameIndex);
       if (!img || !img.complete || img.naturalWidth === 0) return;
 
-      const { x, y, width: dw, height: dh } = drawParams;
+      const { y, width: dw, height: dh } = drawParams;
       if (dw <= 0 || dh <= 0) return;
 
-      ctx.drawImage(img, x, y, dw, dh);
+      const cw = canvas.width;
+      const ch = canvas.height;
+      let dx = drawParams.x;
+      const aspect = (canvas.clientWidth || cw) / (canvas.clientHeight || ch);
+      if (aspect < 1.2 && cw > 0 && dw > 0) {
+        // Dynamic mobile focal alignment:
+        // Frames 1..270 (exterior): 0.52
+        // Frames 271..420 (interior cockpit push): smoothly moves towards 0.60
+        const p = (frameIndex - 1) / (FRAME_COUNT - 1);
+        const mobileAlignX = p <= 0.64 ? 0.52 : 0.52 + (p - 0.64) * (0.08 / 0.36);
+        dx = Math.round((cw - dw) * mobileAlignX);
+      }
+
+      ctx.drawImage(img, dx, y, dw, dh);
       renderedFrameRef.current = frameIndex;
 
       if (!isReadyRef.current) {
@@ -213,7 +240,11 @@ export function useSection2Animation() {
 
           if (img.naturalWidth > 0) {
             const isKeyframe =
-              frame % KEYFRAME_INTERVAL === 0 || frame === 1 || frame === FRAME_COUNT;
+              frame % KEYFRAME_INTERVAL === 0 ||
+              frame === 1 ||
+              frame === 270 ||
+              frame === 271 ||
+              frame === FRAME_COUNT;
 
             if (isKeyframe) {
               keyframeCache.set(frame, img);
@@ -305,14 +336,16 @@ export function useSection2Animation() {
     // Initial Load & Background Keyframe Spine
     // =========================================================================
 
-    // 1. Immediately request initial frames (1..15) and final frame
+    // 1. Immediately request initial frames (1..15), boundary frames (270, 271), and final frame
     for (let f = 1; f <= 15; f++) {
       queuedSet.add(f);
       loadQueue.push(f);
     }
-    if (!queuedSet.has(FRAME_COUNT)) {
-      queuedSet.add(FRAME_COUNT);
-      loadQueue.push(FRAME_COUNT);
+    for (const bFrame of [270, 271, FRAME_COUNT]) {
+      if (!queuedSet.has(bFrame)) {
+        queuedSet.add(bFrame);
+        loadQueue.push(bFrame);
+      }
     }
     processQueue();
 
@@ -367,6 +400,51 @@ export function useSection2Animation() {
       // 4. Draw frame if changed
       if (targetFrame !== renderedFrameRef.current) {
         drawFrame(targetFrame);
+      }
+
+      // 5. Update cinematic text overlay moments with zero React re-render overhead
+      if (sceneElements.length > 0) {
+        for (let i = 0; i < SECTION2_TEXT_SCENES.length; i++) {
+          const scene = SECTION2_TEXT_SCENES[i];
+          const el = sceneElements[i];
+          if (!el) continue;
+
+          let factor = 0;
+          if (progress >= scene.start && progress <= scene.end) {
+            if (progress < scene.start + scene.fadeIn) {
+              factor = (progress - scene.start) / scene.fadeIn;
+            } else if (progress > scene.end - scene.fadeOut) {
+              factor = (scene.end - progress) / scene.fadeOut;
+            } else {
+              factor = 1;
+            }
+          }
+
+          if (factor <= 0.001) {
+            if (el.dataset.active === "true") {
+              el.dataset.active = "false";
+              el.style.opacity = "0";
+              el.style.transform = "translate3d(0, 18px, 0)";
+              el.style.visibility = "hidden";
+              el.style.pointerEvents = "none";
+            }
+          } else {
+            el.dataset.active = "true";
+            // Smooth cubic ease: 3x^2 - 2x^3
+            const ease = factor * factor * (3 - 2 * factor);
+            const translateY = (1 - ease) * 18;
+            el.style.opacity = ease.toFixed(3);
+            el.style.transform = `translate3d(0, ${translateY.toFixed(1)}px, 0)`;
+            el.style.visibility = "visible";
+
+            if (scene.ctaText) {
+              const cta = el.querySelector<HTMLElement>(".section2-text__cta");
+              if (cta) {
+                cta.style.pointerEvents = ease > 0.6 ? "auto" : "none";
+              }
+            }
+          }
+        }
       }
     }
 
@@ -464,5 +542,5 @@ export function useSection2Animation() {
     };
   }, []);
 
-  return { sectionRef, canvasRef, fallbackRef, isReady };
+  return { sectionRef, canvasRef, fallbackRef, overlayRef, isReady };
 }

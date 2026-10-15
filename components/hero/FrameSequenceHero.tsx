@@ -4,10 +4,10 @@ import Image from "next/image";
 import { useScrollFrameSequence } from "@/components/hero/useScrollFrameSequence";
 import "./FrameSequenceHero.css";
 
-const FRAME_COUNT = 150;
+const FRAME_COUNT = 116;
 
 function getFrameUrl(frame: number) {
-  return `/framenew1/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/frame1/frame_${String(frame).padStart(3, "0")}.jpg`;
 }
 
 export function FrameSequenceHero() {
@@ -32,12 +32,12 @@ export function FrameSequenceHero() {
         decoding="async"
         draggable={false}
         fetchPriority="high"
-        height={1080}
+        height={720}
         priority
         ref={fallbackRef}
         src={getFrameUrl(1)}
         unoptimized
-        width={1920}
+        width={1280}
       />
       <canvas
         aria-hidden="true"

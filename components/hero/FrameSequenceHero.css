@@ -44,3 +44,9 @@
 .frame-sequence--ready .frame-sequence__canvas {
   opacity: 1;
 }
+
+@media (max-width: 768px) {
+  .frame-sequence__fallback {
+    object-position: 54% center;
+  }
+}
