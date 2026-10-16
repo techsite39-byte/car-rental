@@ -4,7 +4,10 @@ import Link from "next/link";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FleetFilters } from "@/components/fleet/FleetFilters";
+import {
+  FleetFilters,
+  fleetFilterCategories,
+} from "@/components/fleet/FleetFilters";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
 import {
   vehicles,
@@ -14,14 +17,7 @@ import {
 gsap.registerPlugin(ScrollTrigger);
 
 const HOME_VEHICLE_LIMIT = 6;
-const showcaseFilterCategories: { value: FleetCategory; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "sport", label: "Sport" },
-  { value: "suv", label: "SUV" },
-  { value: "sedan", label: "Sedan" },
-  { value: "electric", label: "Electric" },
-  { value: "convertible", label: "Convertible" },
-];
+const showcaseFilterCategories = fleetFilterCategories;
 
 export function FleetSection() {
   const sectionRef = useRef<HTMLElement>(null);

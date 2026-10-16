@@ -160,6 +160,7 @@ export function Navbar() {
             alt={siteConfig.brand.fullName}
             className="navbar__logo"
             height={64}
+            loading="eager"
             priority
             src="/images/brand/epicdrive-logo.svg"
             width={256}

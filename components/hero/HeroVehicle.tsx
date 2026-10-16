@@ -1,19 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  type Variants,
-} from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, type Variants } from "framer-motion";
 import type { RefObject } from "react";
-import {
-  heroVehiclePresentations,
-  vehicleCategoryLabels,
-  type HeroCategory,
-  type HeroVehicle as HeroVehicleData,
-} from "@/data/vehicles";
+import { vehicleCategoryLabels, type HeroCategory, type HeroVehicle as HeroVehicleData } from "@/data/vehicles";
+import { getLocalVehicleImage } from "@/lib/vehicle-images";
 
 interface HeroVehicleProps {
   vehicle: HeroVehicleData;
@@ -22,41 +13,17 @@ interface HeroVehicleProps {
 }
 
 const categoryVehicleImages: Record<HeroCategory, string> = {
-  sport: "/sport.png",
-  suv: "/suv.png",
-  sedan: "/sedan.png",
-  electric: "/electric.png",
+  mpv: "/carsimg/suzukietiga.png",
+  suv: "/carsimg/kiaklavis.png",
+  sedan: "/carsimg/suzukidzire.png",
+  hatchback: "/carsimg/suzukicelerio.png",
 };
 
 const categoryMotion: Record<HeroCategory, Variants> = {
-  sport: {
-    enter: { opacity: 0, x: -220, scale: 0.98 },
-    visible: { opacity: 1, x: 0, scale: 1 },
-    exit: { opacity: 0, x: 48, scale: 0.99 },
-  },
-  suv: {
-    enter: { opacity: 0, x: -88, y: 16, scale: 0.985 },
-    visible: { opacity: 1, x: 0, y: [16, -3, 0], scale: 1 },
-    exit: { opacity: 0, x: 40, scale: 0.99 },
-  },
-  sedan: {
-    enter: { opacity: 0, x: -68 },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 36 },
-  },
-  electric: {
-    enter: {
-      opacity: 0,
-      x: 60,
-      filter: "drop-shadow(0 0 0 rgb(216 255 79 / 0%))",
-    },
-    visible: {
-      opacity: 1,
-      x: 0,
-      filter: "drop-shadow(0 0 24px rgb(216 255 79 / 20%))",
-    },
-    exit: { opacity: 0, x: 32 },
-  },
+  mpv: { enter: { opacity: 0, x: -88, y: 16, scale: 0.985 }, visible: { opacity: 1, x: 0, y: [16, -3, 0], scale: 1 }, exit: { opacity: 0, x: 40, scale: 0.99 } },
+  suv: { enter: { opacity: 0, x: -88, y: 16, scale: 0.985 }, visible: { opacity: 1, x: 0, y: [16, -3, 0], scale: 1 }, exit: { opacity: 0, x: 40, scale: 0.99 } },
+  sedan: { enter: { opacity: 0, x: -68 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 36 } },
+  hatchback: { enter: { opacity: 0, x: 60 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 32 } },
 };
 
 const reducedMotionVariants: Variants = {
@@ -65,20 +32,11 @@ const reducedMotionVariants: Variants = {
   exit: { opacity: 1, x: 0, y: 0, scale: 1 },
 };
 
-const categoryTransition = {
-  duration: 0.88,
-  ease: [0.2, 0.82, 0.25, 1] as const,
-};
+const categoryTransition = { duration: 0.88, ease: [0.2, 0.82, 0.25, 1] as const };
 
-interface VehicleImageFrameProps {
-  vehicle: HeroVehicleData;
-  reduceMotion: boolean;
-}
+function VehicleImageFrame({ vehicle, reduceMotion }: { vehicle: HeroVehicleData; reduceMotion: boolean }) {
+  const image = getLocalVehicleImage(vehicle) || categoryVehicleImages[vehicle.category];
 
-function VehicleImageFrame({
-  vehicle,
-  reduceMotion,
-}: VehicleImageFrameProps) {
   return (
     <motion.div
       aria-hidden="true"
@@ -88,69 +46,38 @@ function VehicleImageFrame({
       exit="exit"
       initial={reduceMotion ? false : "enter"}
       transition={reduceMotion ? { duration: 0 } : categoryTransition}
-      variants={
-        reduceMotion ? reducedMotionVariants : categoryMotion[vehicle.category]
-      }
+      variants={reduceMotion ? reducedMotionVariants : categoryMotion[vehicle.category]}
     >
       <Image
-        alt={`${vehicleCategoryLabels[vehicle.category]} car`}
+        alt={`${vehicle.name}, ${vehicleCategoryLabels[vehicle.category]}`}
         className="hero-vehicle__image"
         fill
         loading="lazy"
         sizes="(max-width: 700px) 100vw, (max-width: 1024px) 75vw, 58vw"
-        src={categoryVehicleImages[vehicle.category]}
+        src={image}
       />
     </motion.div>
   );
 }
 
-export function HeroVehicle({
-  vehicle,
-  vehicleRef,
-  artworkRef,
-}: HeroVehicleProps) {
-  const presentation = heroVehiclePresentations[vehicle.category];
+export function HeroVehicle({ vehicle, vehicleRef, artworkRef }: HeroVehicleProps) {
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
-    <div
-      className={`hero-vehicle hero-vehicle--${vehicle.category}`}
-      data-hero-vehicle
-      ref={vehicleRef}
-    >
+    <div className={`hero-vehicle hero-vehicle--${vehicle.category}`} data-hero-vehicle ref={vehicleRef}>
       <div className="hero-vehicle__glow" />
-      <div
-        className="hero-vehicle__artwork"
-        ref={artworkRef}
-        style={{ maskImage: "none", WebkitMaskImage: "none" }}
-      >
+      <div className="hero-vehicle__artwork" ref={artworkRef} style={{ maskImage: "none", WebkitMaskImage: "none" }}>
         {reduceMotion ? (
-          <VehicleImageFrame
-            key={vehicle.category}
-            reduceMotion
-            vehicle={vehicle}
-          />
+          <VehicleImageFrame key={vehicle.id} reduceMotion vehicle={vehicle} />
         ) : (
           <AnimatePresence initial={false} mode="wait">
-            <VehicleImageFrame
-              key={vehicle.category}
-              reduceMotion={false}
-              vehicle={vehicle}
-            />
+            <VehicleImageFrame key={vehicle.id} reduceMotion={false} vehicle={vehicle} />
           </AnimatePresence>
         )}
       </div>
       <div className="hero-vehicle__caption">
-        <span className="hero-vehicle__brand">{presentation.brand}</span>
-        <strong className="hero-vehicle__model">{presentation.model}</strong>
-        <a
-          className="hero-vehicle__credit"
-          href={presentation.source}
-          rel="noreferrer"
-          target="_blank"
-        >
-          Photo: {presentation.credit} · {presentation.license}
-        </a>
+        <span className="hero-vehicle__brand">{vehicle.brand}</span>
+        <strong className="hero-vehicle__model">{vehicle.name}</strong>
       </div>
     </div>
   );

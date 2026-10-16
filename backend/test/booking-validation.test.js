@@ -31,7 +31,7 @@ function validInput(overrides = {}) {
 test("estimates use shared server-side vehicle pricing and duration", () => {
   const booking = validateBookingInput(validInput(), idempotencyKey);
 
-  assert.equal(booking.vehicleName, "Kia Carens Clavis");
+  assert.equal(booking.vehicleName, "Kia Clavis");
   assert.equal(booking.startingDailyRate, 4000);
   assert.equal(booking.rentalDurationDays, 2);
   assert.equal(booking.estimatedTotal, 8000);

@@ -106,6 +106,7 @@ export function useFleetCinematicAnimation() {
     let disposed = false;
     let ticking = false;
     let rafId = 0;
+    let isVisible = true;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
     let currentTargetFrame = 1;
     let lastTargetFrame = 1;
@@ -266,7 +267,7 @@ export function useFleetCinematicAnimation() {
     }
 
     function processQueue() {
-      if (disposed) return;
+      if (disposed || !isVisible || document.hidden) return;
 
       while (activeLoads < maxConcurrentLoads && loadQueue.length > 0) {
         const frame = loadQueue.shift();
@@ -390,7 +391,7 @@ export function useFleetCinematicAnimation() {
     // =========================================================================
     function updateCinematic() {
       ticking = false;
-      if (disposed) return;
+      if (disposed || !isVisible || document.hidden) return;
 
       const scrollOffset = latestScrollY - cachedStart;
       const progress = Math.max(0, Math.min(1, scrollOffset / cachedDistance));
@@ -449,6 +450,7 @@ export function useFleetCinematicAnimation() {
 
     function onScroll() {
       latestScrollY = window.scrollY || window.pageYOffset || 0;
+      if (!isVisible || document.hidden) return;
       if (!ticking) {
         ticking = true;
         rafId = requestAnimationFrame(updateCinematic);
@@ -456,6 +458,32 @@ export function useFleetCinematicAnimation() {
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = Boolean(entry?.isIntersecting);
+        if (isVisible) {
+          processQueue();
+          updateCinematic();
+        } else {
+          ticking = false;
+          cancelAnimationFrame(rafId);
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    visibilityObserver.observe(section);
+
+    const handleDocumentVisibility = () => {
+      if (document.hidden) {
+        ticking = false;
+        cancelAnimationFrame(rafId);
+      } else if (isVisible) {
+        processQueue();
+        updateCinematic();
+      }
+    };
+    document.addEventListener("visibilitychange", handleDocumentVisibility);
 
     // GSAP ScrollTrigger Pinning
     ScrollTrigger.config({ ignoreMobileResize: true });
@@ -555,6 +583,8 @@ export function useFleetCinematicAnimation() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener("visibilitychange", handleDocumentVisibility);
 
       layoutObserver?.disconnect();
       ctxGsap?.revert();

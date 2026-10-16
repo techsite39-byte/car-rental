@@ -793,6 +793,24 @@ button {
   color: #10120d;
 }
 
+.hero-category__vehicle {
+  display: block;
+  margin-top: 0.65rem;
+  max-width: 20rem;
+}
+
+.hero-category__vehicle select {
+  width: 100%;
+  min-height: 2.625rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.625rem 2.25rem 0.625rem 0.9rem;
+  background: rgb(17 20 15 / 86%);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
 .hero-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

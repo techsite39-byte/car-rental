@@ -13,7 +13,12 @@ import {
 import { BookingBar } from "@/components/hero/BookingBar";
 import { HeroVehicle } from "@/components/hero/HeroVehicle";
 import { VehicleCategorySelector } from "@/components/hero/VehicleCategorySelector";
-import { getHeroVehicle, type HeroCategory } from "@/data/vehicles";
+import {
+  fleetVehicles,
+  getHeroVehicle,
+  type HeroCategory,
+  type HeroVehicle as HeroVehicleData,
+} from "@/data/vehicles";
 import { formatINR } from "@/lib/currency";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -25,7 +30,10 @@ export function Hero() {
   const moveXRef = useRef<ReturnType<typeof gsap.quickTo> | null>(null);
   const moveYRef = useRef<ReturnType<typeof gsap.quickTo> | null>(null);
   const [activeCategory, setActiveCategory] = useState<HeroCategory>("suv");
-  const vehicle = getHeroVehicle(activeCategory);
+  const [activeVehicleId, setActiveVehicleId] = useState("kia-clavis");
+  const vehicle = (fleetVehicles.find(
+    (candidate) => candidate.id === activeVehicleId,
+  ) ?? getHeroVehicle(activeCategory)) as HeroVehicleData;
   const [statsVehicle, setStatsVehicle] = useState(vehicle);
   const [statsTransitionRevision, setStatsTransitionRevision] = useState(0);
   const statsRef = useRef<HTMLDListElement>(null);
@@ -221,17 +229,19 @@ export function Hero() {
     if (category === activeCategory) return;
 
     setActiveCategory(category);
+    const nextVehicle = getHeroVehicle(category);
+    setActiveVehicleId(nextVehicle.id);
     const stats = statsRef.current;
     const transitionId = ++statsTransitionIdRef.current;
 
     if (!stats) {
-      setStatsVehicle(getHeroVehicle(category));
+      setStatsVehicle(nextVehicle);
       return;
     }
 
     gsap.killTweensOf(stats);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setStatsVehicle(getHeroVehicle(category));
+      setStatsVehicle(nextVehicle);
       gsap.set(stats, { clearProps: "transform,opacity,visibility" });
       return;
     }
@@ -243,11 +253,22 @@ export function Hero() {
       ease: "power2.in",
       onComplete: () => {
         if (transitionId === statsTransitionIdRef.current) {
-          setStatsVehicle(getHeroVehicle(category));
+          setStatsVehicle(nextVehicle);
           setStatsTransitionRevision((revision) => revision + 1);
         }
       },
     });
+  }
+
+  function handleVehicleChange(vehicleId: string) {
+    const nextVehicle = fleetVehicles.find(
+      (candidate) => candidate.id === vehicleId,
+    ) as HeroVehicleData | undefined;
+    if (!nextVehicle) return;
+
+    setActiveVehicleId(nextVehicle.id);
+    setStatsVehicle(nextVehicle);
+    setStatsTransitionRevision((revision) => revision + 1);
   }
 
   useLayoutEffect(() => {
@@ -304,6 +325,9 @@ export function Hero() {
             <VehicleCategorySelector
               activeCategory={activeCategory}
               onCategoryChange={handleCategoryChange}
+              activeVehicleId={activeVehicleId}
+              onVehicleChange={handleVehicleChange}
+              vehicles={fleetVehicles as HeroVehicleData[]}
             />
             <dl
               aria-live="polite"

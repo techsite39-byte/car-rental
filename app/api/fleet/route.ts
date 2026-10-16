@@ -5,12 +5,12 @@ import { hasAdminSession } from "@/lib/admin-session";
 const REQUEST_TIMEOUT_MS = 12_000;
 const MAX_BODY_LENGTH = 12_000;
 
-async function backendRequest(path: string, method: string, body?: string) {
+async function backendRequest(path: string, method: string, body?: string, admin = false) {
   const origin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
   const url = new URL(path, `${origin.replace(/\/+$/, "")}/`);
   const headers = new Headers();
   if (body !== undefined) headers.set("Content-Type", "application/json");
-  if (method !== "GET") {
+  if (method !== "GET" || admin) {
     const token = process.env.ADMIN_API_TOKEN?.trim();
     if (!token) {
       return NextResponse.json(
@@ -54,8 +54,17 @@ async function readBody(request: Request) {
   return new TextEncoder().encode(body).byteLength <= MAX_BODY_LENGTH ? body : null;
 }
 
-export async function GET() {
-  return backendRequest("/api/fleet", "GET");
+export async function GET(request: Request) {
+  const includeHidden = new URL(request.url).searchParams.get("includeHidden") === "true";
+  if (includeHidden && !(await hasAdminSession())) {
+    return NextResponse.json({ error: "Admin authorization required." }, { status: 401 });
+  }
+  return backendRequest(
+    includeHidden ? "/api/fleet?includeHidden=true" : "/api/fleet",
+    "GET",
+    undefined,
+    includeHidden,
+  );
 }
 
 export async function POST(request: Request) {

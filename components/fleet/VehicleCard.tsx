@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { vehicleCategoryLabels, type Vehicle } from "@/data/vehicles";
 import { formatINR } from "@/lib/currency";
+import { getLocalVehicleImage } from "@/lib/vehicle-images";
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -13,10 +14,11 @@ interface VehicleCardProps {
 
 export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const mappedImage = getLocalVehicleImage(vehicle);
   const imageSrc =
-    imageFailed || !vehicle.image
+    imageFailed || !mappedImage
       ? "/images/vehicles/vehicle-photo-unavailable.svg"
-      : vehicle.image;
+      : mappedImage;
 
   return (
     <article
@@ -28,7 +30,7 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
         <div className="vehicle-card__image-wrap" data-vehicle-image>
           <Image
             alt={
-              imageSrc !== vehicle.image
+              imageSrc !== mappedImage
                 ? `Photo unavailable for ${vehicle.name}`
                 : `${vehicle.name}, ${vehicle.type}`
             }

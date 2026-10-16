@@ -229,7 +229,7 @@ export function AdminWorkspace({ page }: { page: WorkspacePage }) {
     items: vehicles,
     error: vehiclesError,
     loading: vehiclesLoading,
-  } = useFleetCollection(seedFleetVehicles);
+  } = useFleetCollection(seedFleetVehicles, { includeHidden: true });
   const { items: bookings, error: bookingsError } = useAdminCollection(
     adminRepositories.bookings,
     [],

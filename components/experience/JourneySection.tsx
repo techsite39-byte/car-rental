@@ -9,12 +9,15 @@ import { vehicles, type Vehicle } from "@/data/vehicles";
 gsap.registerPlugin(ScrollTrigger);
 
 const journeyImages = {
-  feature: "/images/vehicles/hero-luxury-suv.jpg",
-  convertible: "/images/vehicles/hero-porsche-taycan.jpg",
+  feature: "/carsimg/kiaklavis.png",
+  convertible: "/carsimg/renaultkiger.png",
   fleet: {
-    "atlas-x7": "/images/vehicles/hero-luxury-suv.png",
-    "aurora-s": "/images/vehicles/hero-porsche-taycan.png",
-    "vantage-gt": "/images/vehicles/hero-aston-martin-vantage.png",
+    "kia-clavis": "/carsimg/kiaklavis.png",
+    "maruti-ertiga": "/carsimg/suzukietiga.png",
+    "maruti-brezza": "/carsimg/suzukibreza.png",
+    "renault-kiger": "/carsimg/renaultkiger.png",
+    "maruti-dzire": "/carsimg/suzukidzire.png",
+    "maruti-celerio": "/carsimg/suzukicelerio.png",
   },
 } as const;
 
@@ -27,12 +30,10 @@ function getVehicle(id: string): Vehicle {
   return vehicle;
 }
 
-const featuredVehicle = getVehicle("atlas-x7");
-const convertible = getVehicle("velocity-rs");
-const fleetVehicles = vehicles.filter(({ id }) =>
-  ["atlas-x7", "aurora-s", "vantage-gt"].includes(id),
-);
-const fleetCount = 4516;
+const featuredVehicle = getVehicle("kia-clavis");
+const convertible = getVehicle("renault-kiger");
+const fleetVehicles = vehicles;
+const fleetCount = vehicles.length;
 
 export function JourneySection() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -199,7 +200,7 @@ export function JourneySection() {
             <ExperienceCard
               fleetVehicles={fleetVehicles}
               fleetImageSources={journeyImages.fleet}
-              futureImage={journeyImages.fleet["atlas-x7"]}
+              futureImage={journeyImages.fleet["kia-clavis"]}
               vehicle={featuredVehicle}
               vehicleCount={fleetCount}
               variant="fleet"

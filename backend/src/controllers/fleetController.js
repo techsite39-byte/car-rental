@@ -165,6 +165,24 @@ async function ensureFleetSeeded() {
     })),
     { ordered: false },
   );
+
+  // Migrate only legacy seeded rows. Once a row uses the current local asset,
+  // admin-managed edits are left untouched on later requests.
+  await FleetVehicle.bulkWrite(
+    fleetSeeds.map((vehicle) => {
+      const seeded = seedVehicle(vehicle, true);
+      return {
+        updateOne: {
+          filter: {
+            slug: seeded.slug,
+            image: /^\/images\/vehicles\//,
+          },
+          update: { $set: seeded },
+        },
+      };
+    }),
+    { ordered: false },
+  );
 }
 
 function serializeVehicle(vehicle) {
@@ -188,7 +206,9 @@ async function listFleet(_req, res, next) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
     await ensureFleetSeeded();
-    const vehicles = await FleetVehicle.find({ archived: { $ne: true } })
+    const query = { archived: { $ne: true } };
+    if (_req.query.includeHidden !== "true") query.showInFleet = true;
+    const vehicles = await FleetVehicle.find(query)
       .sort({ name: 1 })
       .lean();
     return res.status(200).json({

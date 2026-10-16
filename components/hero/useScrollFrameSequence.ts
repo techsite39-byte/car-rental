@@ -66,6 +66,7 @@ export function useScrollFrameSequence({
     let disposed = false;
     let rafId = 0;
     let isLoopRunning = false;
+    let isVisible = true;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
@@ -221,7 +222,7 @@ export function useScrollFrameSequence({
     }
 
     function processQueue() {
-      if (disposed) return;
+      if (disposed || !isVisible || document.hidden) return;
 
       while (activeLoads < maxConcurrentLoads && loadQueue.length > 0) {
         const frame = loadQueue.shift();
@@ -428,13 +429,39 @@ export function useScrollFrameSequence({
     }
 
     function wakeRenderLoop() {
-      if (!isLoopRunning && !disposed) {
+      if (!isLoopRunning && !disposed && isVisible && !document.hidden) {
         isLoopRunning = true;
         rafId = requestAnimationFrame(tick);
       }
     }
 
     wakeRenderLoop();
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = Boolean(entry?.isIntersecting);
+        if (isVisible) {
+          processQueue();
+          wakeRenderLoop();
+        } else if (isLoopRunning) {
+          isLoopRunning = false;
+          cancelAnimationFrame(rafId);
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    visibilityObserver.observe(section);
+
+    const handleDocumentVisibility = () => {
+      if (document.hidden) {
+        isLoopRunning = false;
+        cancelAnimationFrame(rafId);
+      } else {
+        processQueue();
+        wakeRenderLoop();
+      }
+    };
+    document.addEventListener("visibilitychange", handleDocumentVisibility);
 
     // =========================================================================
     // GSAP ScrollTrigger Integration (Pinned Smooth Scrub Timeline)
@@ -476,6 +503,8 @@ export function useScrollFrameSequence({
       clearTimeout(timer);
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener("visibilitychange", handleDocumentVisibility);
       window.removeEventListener("orientationchange", handleOrientation);
       trigger?.kill();
 

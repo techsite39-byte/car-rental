@@ -63,6 +63,7 @@ export function useSection2Animation() {
     let disposed = false;
     let ticking = false;
     let rafId = 0;
+    let isVisible = true;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
     let currentTargetFrame = 1;
     let lastTargetFrame = 1;
@@ -235,7 +236,7 @@ export function useSection2Animation() {
     }
 
     function processQueue() {
-      if (disposed) return;
+      if (disposed || !isVisible || document.hidden) return;
 
       while (activeLoads < maxConcurrentLoads && loadQueue.length > 0) {
         const frame = loadQueue.shift();
@@ -396,7 +397,7 @@ export function useSection2Animation() {
     // =========================================================================
     function updateSection2() {
       ticking = false;
-      if (disposed) return;
+      if (disposed || !isVisible || document.hidden) return;
 
       // 1. Calculate progress from latest scroll position and cached dimensions (0 to 1)
       const scrollOffset = latestScrollY - cachedStart;
@@ -468,6 +469,7 @@ export function useSection2Animation() {
 
     function onScroll() {
       latestScrollY = window.scrollY || window.pageYOffset || 0;
+      if (!isVisible || document.hidden) return;
       if (!ticking) {
         ticking = true;
         rafId = requestAnimationFrame(updateSection2);
@@ -475,6 +477,32 @@ export function useSection2Animation() {
     }
 
     window.addEventListener("scroll", onScroll, { passive: true });
+
+    const visibilityObserver = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = Boolean(entry?.isIntersecting);
+        if (isVisible) {
+          processQueue();
+          updateSection2();
+        } else {
+          ticking = false;
+          cancelAnimationFrame(rafId);
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    visibilityObserver.observe(section);
+
+    const handleDocumentVisibility = () => {
+      if (document.hidden) {
+        ticking = false;
+        cancelAnimationFrame(rafId);
+      } else if (isVisible) {
+        processQueue();
+        updateSection2();
+      }
+    };
+    document.addEventListener("visibilitychange", handleDocumentVisibility);
 
     // =========================================================================
     // GSAP Context with ScrollTrigger Pinning
@@ -536,6 +564,8 @@ export function useSection2Animation() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      document.removeEventListener("visibilitychange", handleDocumentVisibility);
 
       // Cleanly revert GSAP DOM modifications before React reconciliation
       ctxGsap.revert();

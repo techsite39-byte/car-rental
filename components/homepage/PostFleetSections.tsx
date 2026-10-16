@@ -35,12 +35,12 @@ function getVehicle(category: ShowcaseCategory): Vehicle {
 
 const experiences: DrivingExperience[] = [
   {
-    category: "sport",
-    title: "SPORTS & PERFORMANCE",
-    description: "Made for the moments that move you.",
-    action: "Explore Sports Cars",
-    image: getVehicle("sport"),
-    imageAlt: "Sports car photographed in a cinematic automotive setting",
+    category: "mpv",
+    title: "FAMILY JOURNEYS",
+    description: "Room for every road ahead.",
+    action: "Explore Family Cars",
+    image: getVehicle("mpv"),
+    imageAlt: "Family vehicle prepared for a comfortable journey",
   },
   {
     category: "sedan",
@@ -57,17 +57,17 @@ const experiences: DrivingExperience[] = [
     action: "Explore SUVs",
     image: {
       ...getVehicle("suv"),
-      image: "/images/vehicles/hero-luxury-suv.jpg",
+      image: "/carsimg/kiaklavis.png",
     },
     imageAlt: "Premium SUV ready for the open road",
   },
   {
-    category: "electric",
-    title: "ELECTRIC & FUTURE",
-    description: "A new way to experience the drive.",
-    action: "Explore Electric",
-    image: getVehicle("electric"),
-    imageAlt: "Premium electric vehicle in an editorial setting",
+    category: "hatchback",
+    title: "CITY & EVERYDAY",
+    description: "A practical way to experience every drive.",
+    action: "Explore Hatchbacks",
+    image: getVehicle("hatchback"),
+    imageAlt: "Compact hatchback ready for everyday travel",
   },
 ];
 
@@ -82,42 +82,39 @@ const occasionCards = [
     imageAlt: "Executive sedan for professional journeys",
   },
   {
-    category: "sport" as const,
+    category: "suv" as const,
     eyebrow: "WEEKEND ESCAPES",
     heading: "Take the scenic route.",
     description:
       "Find a car that makes the journey part of the adventure.",
     action: "Explore the Fleet",
     image: {
-      ...getVehicle("sport"),
-      image: "/images/vehicles/hero-porsche-taycan.jpg",
+      ...getVehicle("suv"),
+      image: "/carsimg/suzukibreza.png",
     },
     imageAlt: "Performance car ready for a weekend drive",
   },
   {
-    category: "convertible" as const,
+    category: "mpv" as const,
     eyebrow: "SPECIAL MOMENTS",
-    heading: "Give every moment a grand entrance.",
-    description:
-      "Explore vehicles for celebrations and memorable occasions.",
+    heading: "Give every moment room to breathe.",
+    description: "Explore vehicles for celebrations and memorable occasions.",
     action: "Discover Your Options",
-    image: getVehicle("convertible"),
-    imageAlt: "Performance convertible for a special occasion",
+    image: getVehicle("mpv"),
+    imageAlt: "Family vehicle for a special occasion",
   },
 ];
 
 function fleetCategoryFor(category: ShowcaseCategory) {
   switch (category) {
-    case "sport":
-      return "suv";
     case "suv":
       return "suv";
     case "sedan":
       return "sedan";
-    case "electric":
-      return "hatchback";
-    case "convertible":
+    case "mpv":
       return "mpv";
+    case "hatchback":
+      return "hatchback";
   }
 }
 

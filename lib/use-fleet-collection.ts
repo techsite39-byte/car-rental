@@ -42,10 +42,13 @@ export function useFleetCollection(
 
     async function refresh() {
       try {
-        const response = await fetch("/api/fleet", {
+        const response = await fetch(
+          includeHidden ? "/api/fleet?includeHidden=true" : "/api/fleet",
+          {
           cache: "no-store",
           signal: controller.signal,
-        });
+          },
+        );
         const payload: unknown = await response.json().catch(() => null);
         const records =
           typeof payload === "object" && payload !== null && "vehicles" in payload

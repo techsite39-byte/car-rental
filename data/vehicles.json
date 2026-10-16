@@ -2,16 +2,16 @@
   {
     "id": "kia-clavis",
     "slug": "kia-clavis",
-    "name": "Kia Carens Clavis",
+    "name": "Kia Clavis",
     "brand": "Kia",
-    "model": "Carens Clavis",
-    "category": "mpv",
-    "type": "MPV",
+    "model": "Clavis",
+    "category": "suv",
+    "type": "SUV",
     "pricePerDay": 4000,
     "seats": 7,
     "fuelType": "Petrol",
-    "image": "/images/vehicles/kia-carens-clavis.jpg",
-    "description": "A seven-seat Kia MPV for comfortable group travel.",
+    "image": "/carsimg/kiaklavis.png",
+    "description": "7-Seater Family SUV",
     "available": true,
     "featured": true
   },
@@ -26,8 +26,8 @@
     "pricePerDay": 3000,
     "seats": 7,
     "fuelType": "Petrol",
-    "image": "/images/vehicles/maruti-ertiga.jpg",
-    "description": "A seven-seat Ertiga suited to family and group journeys.",
+    "image": "/carsimg/suzukietiga.png",
+    "description": "7-Seater Family MPV",
     "available": true
   },
   {
@@ -41,8 +41,8 @@
     "pricePerDay": 2500,
     "seats": 5,
     "fuelType": "Petrol",
-    "image": "/images/vehicles/maruti-brezza.jpg",
-    "description": "A five-seat Brezza for everyday drives and out-of-town trips.",
+    "image": "/carsimg/suzukibreza.png",
+    "description": "Compact SUV",
     "available": true
   },
   {
@@ -56,8 +56,8 @@
     "pricePerDay": 2300,
     "seats": 5,
     "fuelType": "Petrol",
-    "image": "/images/vehicles/renault-kiger.webp",
-    "description": "A five-seat Kiger for flexible city and highway travel.",
+    "image": "/carsimg/renaultkiger.png",
+    "description": "Compact SUV",
     "available": true
   },
   {
@@ -71,8 +71,8 @@
     "pricePerDay": 2000,
     "seats": 5,
     "fuelType": "CNG",
-    "image": "/images/vehicles/maruti-dzire.jpg",
-    "description": "A five-seat Dzire sedan with CNG fuel, as listed by EPICDRIVE.",
+    "image": "/carsimg/suzukidzire.png",
+    "description": "CNG Sedan",
     "available": true
   },
   {
@@ -86,8 +86,8 @@
     "pricePerDay": 1700,
     "seats": 5,
     "fuelType": "Petrol",
-    "image": "/images/vehicles/maruti-celerio.webp",
-    "description": "A five-seat Celerio hatchback for practical everyday travel.",
+    "image": "/carsimg/suzukicelerio.png",
+    "description": "Compact Hatchback",
     "available": true
   }
 ]

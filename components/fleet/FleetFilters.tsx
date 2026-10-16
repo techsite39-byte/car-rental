@@ -14,6 +14,9 @@ export const fleetFilterCategories: FleetFiltersProps["categories"] = [
   { value: "suv", label: "SUV" },
   { value: "sedan", label: "Sedan" },
   { value: "hatchback", label: "Hatchback" },
+  { value: "sport", label: "Sport" },
+  { value: "electric", label: "Electric" },
+  { value: "convertible", label: "Convertible" },
 ];
 
 export function FleetFilters({
