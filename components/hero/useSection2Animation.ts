@@ -14,8 +14,8 @@ const SOURCE_HEIGHT = 2160;
 const KEYFRAME_INTERVAL = 15;
 const MOBILE_QUERY = "(max-width: 700px)";
 
-function getFrameUrl(frame: number): string {
-  return `/Second/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
+function getFrameUrl(frame: number, directory: "Second" | "Second-mobile"): string {
+  return `/${directory}/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
 }
 
 interface DrawParams {
@@ -75,6 +75,9 @@ export function useSection2Animation() {
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const isMobile = mobileQuery.matches;
+    const frameDirectory = isMobile ? "Second-mobile" : "Second";
+    const sourceWidth = isMobile ? 1280 : SOURCE_WIDTH;
+    const sourceHeight = isMobile ? 720 : SOURCE_HEIGHT;
 
     // Cache sizing and load limits
     // 4K decoded bitmaps are expensive; keep a small smooth-scroll window.
@@ -112,11 +115,11 @@ export function useSection2Animation() {
 
       // Keep the backing store sharp without exceeding a bounded GPU memory budget.
       const pixelBudgetDpr = Math.sqrt(
-        6_000_000 / (rectWidth * rectHeight),
+        (isMobile ? 2_500_000 : 6_000_000) / (rectWidth * rectHeight),
       );
       const dpr = Math.min(
         window.devicePixelRatio || 1,
-        3,
+        isMobile ? 2 : 3,
         pixelBudgetDpr,
       );
       const cw = Math.round(rectWidth * dpr);
@@ -127,10 +130,10 @@ export function useSection2Animation() {
         canvas.height = ch;
       }
 
-      // Exact aspect-cover presentation matching the 3840x2160 source.
-      const scale = Math.max(cw / SOURCE_WIDTH, ch / SOURCE_HEIGHT);
-      const dw = Math.round(SOURCE_WIDTH * scale);
-      const dh = Math.round(SOURCE_HEIGHT * scale);
+      // Exact aspect-cover presentation matching the selected source set.
+      const scale = Math.max(cw / sourceWidth, ch / sourceHeight);
+      const dw = Math.round(sourceWidth * scale);
+      const dh = Math.round(sourceHeight * scale);
       const dx = Math.round((cw - dw) / 2);
       const dy = Math.round((ch - dh) / 2);
 
@@ -141,7 +144,7 @@ export function useSection2Animation() {
         height: dh,
       };
 
-      if (renderedFrameRef.current > 0) {
+      if (renderedFrameRef.current >= 0) {
         drawFrame(renderedFrameRef.current);
       }
     }
@@ -327,7 +330,7 @@ export function useSection2Animation() {
           processQueue();
         };
 
-        img.src = getFrameUrl(frame);
+        img.src = getFrameUrl(frame, frameDirectory);
       }
     }
 
@@ -348,14 +351,13 @@ export function useSection2Animation() {
         if (f >= 0 && f <= LAST_FRAME_INDEX) ordered.push(f);
       }
 
-      // Purge requests from queue that are now far from current target (> 40 frames away)
-      if (loadQueue.length > 30) {
-        for (let i = loadQueue.length - 1; i >= 0; i--) {
-          const queued = loadQueue[i];
-          if (Math.abs(queued - centerFrame) > 40) {
-            queuedSet.delete(queued);
-            loadQueue.splice(i, 1);
-          }
+      // Deprioritize obsolete queued work whenever the scroll direction/target changes.
+      // In-flight images are allowed to finish so their decodes are not interrupted mid-flight.
+      for (let i = loadQueue.length - 1; i >= 0; i--) {
+        const queued = loadQueue[i];
+        if (Math.abs(queued - centerFrame) > 40) {
+          queuedSet.delete(queued);
+          loadQueue.splice(i, 1);
         }
       }
 

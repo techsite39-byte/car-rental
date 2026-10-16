@@ -15,19 +15,25 @@ export function Section2ScrollHero() {
       className={`section2-sequence${isReady ? " section2-sequence--ready" : ""}`}
       ref={sectionRef}
     >
-      <Image
-        alt="BMW cinematic journey sequence"
-        className="section2-sequence__fallback"
-        decoding="async"
-        draggable={false}
-        height={2160}
-        sizes="100vw"
-        loading="lazy"
-        ref={fallbackRef}
-        src="/Second/Untitled00108000.jpg"
-        unoptimized
-        width={3840}
-      />
+      <picture>
+        <source
+          media="(max-width: 700px)"
+          srcSet="/Second-mobile/Untitled00108000.jpg"
+        />
+        <Image
+          alt="BMW cinematic journey sequence"
+          className="section2-sequence__fallback"
+          decoding="async"
+          draggable={false}
+          height={2160}
+          sizes="100vw"
+          loading="lazy"
+          ref={fallbackRef}
+          src="/Second/Untitled00108000.jpg"
+          unoptimized
+          width={3840}
+        />
+      </picture>
       <canvas
         aria-hidden="true"
         className="section2-sequence__canvas"
