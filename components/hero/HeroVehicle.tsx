@@ -79,8 +79,6 @@ function VehicleImageFrame({
   vehicle,
   reduceMotion,
 }: VehicleImageFrameProps) {
-  const presentation = heroVehiclePresentations[vehicle.category];
-
   return (
     <motion.div
       aria-hidden="true"
@@ -98,7 +96,7 @@ function VehicleImageFrame({
         alt={`${vehicleCategoryLabels[vehicle.category]} car`}
         className="hero-vehicle__image"
         fill
-        loading="eager"
+        loading="lazy"
         sizes="(max-width: 700px) 100vw, (max-width: 1024px) 75vw, 58vw"
         src={categoryVehicleImages[vehicle.category]}
       />

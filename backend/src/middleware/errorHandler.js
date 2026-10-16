@@ -7,6 +7,9 @@ function errorHandler(error, _req, res, next) {
   if (error?.statusCode === 422) {
     return res.status(422).json({ error: error.message });
   }
+  if (error?.code === 11000) {
+    return res.status(409).json({ error: "That vehicle slug or ID is already in use." });
+  }
   if (error instanceof SyntaxError && error.status === 400 && "body" in error) {
     return res.status(400).json({ error: "Booking details contain invalid JSON." });
   }
@@ -19,7 +22,7 @@ function errorHandler(error, _req, res, next) {
   ) {
     return res.status(503).json({
       code: "database_unavailable",
-      error: "Booking confirmation is temporarily unavailable.",
+      error: "The requested service is temporarily unavailable.",
     });
   }
   if (error?.name === "ValidationError") {
@@ -27,7 +30,7 @@ function errorHandler(error, _req, res, next) {
   }
 
   console.error(
-    "Booking API request failed.",
+    "API request failed.",
     typeof error?.name === "string" ? error.name : "UnknownError",
   );
   return res.status(500).json({ error: "An unexpected server error occurred." });

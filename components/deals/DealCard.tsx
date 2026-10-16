@@ -23,7 +23,6 @@ export function DealCard({ deal, index, total }: DealCardProps) {
           fill
           sizes="(max-width: 700px) 82vw, 31vw"
           src={deal.image}
-          unoptimized
         />
       </div>
 

@@ -1818,6 +1818,16 @@ button {
   }
 }
 
+.home-deferred-placeholder {
+  min-height: 28rem;
+  content-visibility: auto;
+}
+
+.home-deferred-placeholder--sequence,
+.home-deferred-placeholder--cinematic {
+  min-height: 100svh;
+}
+
 .journey-section {
   position: relative;
   overflow: clip;

@@ -49,7 +49,7 @@ function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
           sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw"
           onError={() => setImageFailed(true)}
           src={image}
-          unoptimized
+          unoptimized={!image.startsWith("/")}
         />
       </div>
       <div className="vehicle-related-card__body">

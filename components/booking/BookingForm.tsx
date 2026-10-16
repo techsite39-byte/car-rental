@@ -7,6 +7,7 @@ import { gsap } from "gsap";
 import { BookingSummary } from "@/components/booking/BookingSummary";
 import { Button } from "@/components/ui/Button";
 import { bookingVehicles } from "@/data/vehicles";
+import { useFleetCollection } from "@/lib/use-fleet-collection";
 import {
   DEMO_PICKUP_LOCATIONS,
   isValidBookingDate,
@@ -90,6 +91,9 @@ function formatDateTime(value: string) {
 
 export function BookingForm({ initialContext }: BookingFormProps) {
   const router = useRouter();
+  const { items: fleetVehicles } = useFleetCollection(bookingVehicles, {
+    includeHidden: true,
+  });
   const pageRef = useRef<HTMLDivElement>(null);
   const confirmationRef = useRef<HTMLElement>(null);
   const fieldRefs = useRef<Partial<Record<BookingField, BookingInput | null>>>(
@@ -100,7 +104,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     key: string;
   } | null>(null);
   const [vehicleIdentifier, setVehicleIdentifier] = useState(() => {
-    const initialVehicle = bookingVehicles.find(
+    const initialVehicle = fleetVehicles.find(
       (vehicle) =>
         vehicle.id === initialContext.vehicle ||
         vehicle.slug === initialContext.vehicle,
@@ -135,12 +139,12 @@ export function BookingForm({ initialContext }: BookingFormProps) {
 
   const selectedVehicle = useMemo(
     () =>
-      bookingVehicles.find(
+      fleetVehicles.find(
         (vehicle) =>
           vehicle.id === vehicleIdentifier ||
           vehicle.slug === vehicleIdentifier,
       ) ?? null,
-    [vehicleIdentifier],
+    [fleetVehicles, vehicleIdentifier],
   );
 
   const pickupDateTime = useMemo(
@@ -399,7 +403,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
                   value={vehicleIdentifier}
                 >
                   <option value="">Select a vehicle</option>
-                  {bookingVehicles.map((vehicle) => (
+                  {fleetVehicles.map((vehicle) => (
                     <option
                       disabled={!vehicle.available}
                       key={vehicle.id}

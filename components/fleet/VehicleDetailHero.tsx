@@ -199,7 +199,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
             sizes="(max-width: 700px) 100vw, (max-width: 1100px) 65vw, 60vw"
             onError={() => setImageFailed(true)}
             src={imageSrc}
-            unoptimized
+            unoptimized={!imageSrc.startsWith("/")}
           />
           <span className="vehicle-detail-hero__visual-caption">
             {vehicle.name}

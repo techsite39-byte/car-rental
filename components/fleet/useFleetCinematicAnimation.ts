@@ -71,6 +71,7 @@ export function useFleetCinematicAnimation() {
   const fallbackRef = useRef<HTMLImageElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
 
   // Mutable refs: ZERO React re-renders during active scrolling
   const renderedFrameRef = useRef(-1);
@@ -78,8 +79,26 @@ export function useFleetCinematicAnimation() {
 
   useEffect(() => {
     const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setHasEnteredViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "100% 0px" },
+    );
+    observer.observe(section);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const section = sectionRef.current;
     const canvas = canvasRef.current;
-    if (!section || !canvas) return;
+    if (!section || !canvas || !hasEnteredViewport) return;
 
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
@@ -126,8 +145,7 @@ export function useFleetCinematicAnimation() {
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      const isMob = mobileQuery.matches;
-      const dpr = Math.min(window.devicePixelRatio || 1, isMob ? 1.25 : 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -559,7 +577,7 @@ export function useFleetCinematicAnimation() {
       loadQueue.length = 0;
       queuedSet.clear();
     };
-  }, []);
+  }, [hasEnteredViewport]);
 
   return { sectionRef, canvasRef, fallbackRef, overlayRef, isReady };
 }

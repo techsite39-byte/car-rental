@@ -2,15 +2,12 @@
 
 import Link from "next/link";
 import { fleetVehicles as seedVehicles } from "@/data/vehicles";
-import { adminRepositories } from "@/lib/admin-data";
-import { useAdminCollection } from "@/lib/use-admin-collection";
+import { useFleetCollection } from "@/lib/use-fleet-collection";
 import { VehicleDetail } from "@/components/fleet/VehicleDetail";
 
 export function VehicleDetailRoute({ slug }: { slug: string }) {
-  const { items: vehicles, error } = useAdminCollection(
-    adminRepositories.vehicles,
-    seedVehicles,
-  );
+  const { items, error } = useFleetCollection(seedVehicles);
+  const vehicles = items.filter((item) => item.showInFleet !== false);
   const vehicle = vehicles.find((item) => item.slug === slug);
 
   if (error) {

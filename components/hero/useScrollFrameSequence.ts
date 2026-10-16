@@ -93,8 +93,7 @@ export function useScrollFrameSequence({
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0) return;
 
-      const isMobile = mobileQuery.matches;
-      const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2.0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -343,13 +342,15 @@ export function useScrollFrameSequence({
     // Initial Load & Background Keyframe Spine Preloader
     // =========================================================================
 
-    // 1. Eagerly load initial frames (1..15) and final frame (frameCount)
-    for (let f = 1; f <= 15; f++) {
+    // Reduced-motion users only need the static first frame. Other users get a
+    // short critical window, then the sequence is expanded during idle time.
+    const initialFrameCount = reducedMotionQuery.matches ? 1 : 15;
+    for (let f = 1; f <= initialFrameCount; f++) {
       queuedSet.add(f);
       preloadFrames.add(f);
       loadQueue.push(f);
     }
-    if (!queuedSet.has(frameCount)) {
+    if (!reducedMotionQuery.matches && !queuedSet.has(frameCount)) {
       queuedSet.add(frameCount);
       preloadFrames.add(frameCount);
       loadQueue.push(frameCount);
@@ -357,10 +358,12 @@ export function useScrollFrameSequence({
     processQueue();
 
     // 2. Progressively prefetch keyframes across Section 1 in idle chunks
-    const keyframes = Array.from(
-      { length: Math.ceil(frameCount / KEYFRAME_INTERVAL) },
-      (_, i) => Math.min(frameCount, (i + 1) * KEYFRAME_INTERVAL)
-    );
+    const keyframes = reducedMotionQuery.matches
+      ? []
+      : Array.from(
+          { length: Math.ceil(frameCount / KEYFRAME_INTERVAL) },
+          (_, i) => Math.min(frameCount, (i + 1) * KEYFRAME_INTERVAL),
+        );
 
     const timer = setTimeout(() => {
       if (disposed) return;
@@ -441,28 +444,32 @@ export function useScrollFrameSequence({
     const isMobile = mobileQuery.matches;
     const scrollDistance = window.innerHeight * (isMobile ? 1.8 : 2.2);
 
-    const trigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: () => `+=${scrollDistance}`,
-      pin: section,
-      pinSpacing: true,
-      anticipatePin: 1,
-      invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        targetProgressRef.current = self.progress;
-        wakeRenderLoop();
-      },
-      onRefresh: (self) => {
-        targetProgressRef.current = self.progress;
-        wakeRenderLoop();
-      },
-    });
+    const trigger = reducedMotionQuery.matches
+      ? null
+      : ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: () => `+=${scrollDistance}`,
+          pin: section,
+          pinSpacing: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            targetProgressRef.current = self.progress;
+            wakeRenderLoop();
+          },
+          onRefresh: (self) => {
+            targetProgressRef.current = self.progress;
+            wakeRenderLoop();
+          },
+        });
 
     const handleOrientation = () => {
       ScrollTrigger.refresh();
     };
-    window.addEventListener("orientationchange", handleOrientation, { passive: true });
+    if (!reducedMotionQuery.matches) {
+      window.addEventListener("orientationchange", handleOrientation, { passive: true });
+    }
 
     return () => {
       disposed = true;
@@ -470,7 +477,7 @@ export function useScrollFrameSequence({
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       window.removeEventListener("orientationchange", handleOrientation);
-      trigger.kill();
+      trigger?.kill();
 
       for (const img of inFlight.values()) {
         img.src = "";

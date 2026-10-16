@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
 
 function databaseNameFromUri(uri) {
-  const match = uri.match(/^mongodb(?:\+srv)?:\/\/[^/?]+\/([^?]*)/i);
-  const databaseName = match?.[1] ? decodeURIComponent(match[1]) : "";
-  return databaseName || "epicdrive";
+  return uri ? "epicdrive" : "";
 }
 
 async function connectDatabase() {
@@ -16,7 +14,7 @@ async function connectDatabase() {
   }
 
   await mongoose.connect(uri, {
-    dbName: databaseNameFromUri(uri),
+    dbName: "epicdrive",
     serverSelectionTimeoutMS: 5000,
   });
   return mongoose.connection;

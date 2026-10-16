@@ -99,6 +99,7 @@ export interface Vehicle {
   description: string;
   available: boolean;
   featured?: boolean;
+  showInFleet?: boolean;
 }
 
 export type HeroVehicle = Omit<Vehicle, "category"> & {

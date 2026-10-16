@@ -28,6 +28,7 @@ export function useSection2Animation() {
   const fallbackRef = useRef<HTMLImageElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
 
   // Mutable refs: ZERO React re-renders during scrolling
   const renderedFrameRef = useRef(-1);
@@ -35,8 +36,26 @@ export function useSection2Animation() {
 
   useEffect(() => {
     const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setHasEnteredViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -2px 0px" },
+    );
+    observer.observe(section);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const section = sectionRef.current;
     const canvas = canvasRef.current;
-    if (!section || !canvas) return;
+    if (!section || !canvas || !hasEnteredViewport) return;
 
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
@@ -85,9 +104,8 @@ export function useSection2Animation() {
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      const isMob = mobileQuery.matches;
       // Cap DPR to avoid excessive GPU memory fillrate on mobile high-DPI screens
-      const dpr = Math.min(window.devicePixelRatio || 1, isMob ? 1.25 : 1.5);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -540,7 +558,7 @@ export function useSection2Animation() {
       loadQueue.length = 0;
       queuedSet.clear();
     };
-  }, []);
+  }, [hasEnteredViewport]);
 
   return { sectionRef, canvasRef, fallbackRef, overlayRef, isReady };
 }

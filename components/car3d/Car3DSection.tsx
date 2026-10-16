@@ -190,9 +190,7 @@ function getRendererProfile(): RendererProfile {
     window.matchMedia("(pointer: coarse)").matches;
 
   return {
-    dpr: limitedDevice
-      ? 1
-      : Math.min(window.devicePixelRatio || 1, 1.25),
+    dpr: Math.min(window.devicePixelRatio || 1, limitedDevice ? 1.5 : 2),
     antialias: !limitedDevice,
     powerPreference: limitedDevice ? "default" : "high-performance",
     contactShadows: !limitedDevice,
@@ -838,7 +836,6 @@ export function Car3DSection() {
       setModelLoadState({ status: "error", error });
     };
 
-    setModelLoadState({ status: "loading", progress: null });
     request.open("GET", MODEL_URL);
     request.responseType = "arraybuffer";
     request.timeout = MODEL_REQUEST_TIMEOUT_MS;
@@ -925,7 +922,10 @@ export function Car3DSection() {
   }, [modelAttempt]);
 
   useEffect(() => {
-    setRendererProfile(getRendererProfile());
+    const frame = window.requestAnimationFrame(() => {
+      setRendererProfile(getRendererProfile());
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const handleModelError = useCallback(

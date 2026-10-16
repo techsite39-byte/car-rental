@@ -20,9 +20,9 @@ export function Section2ScrollHero() {
         className="section2-sequence__fallback"
         decoding="async"
         draggable={false}
-        fetchPriority="high"
         height={720}
-        priority
+        sizes="100vw"
+        loading="lazy"
         ref={fallbackRef}
         src="/sec2/frame_001.jpg"
         unoptimized

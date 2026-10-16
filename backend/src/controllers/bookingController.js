@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import vehicles from "../../../data/vehicles.json" with { type: "json" };
 import originalVehicles from "../../../data/original-vehicles.json" with { type: "json" };
 import Booking from "../models/Booking.js";
+import FleetVehicle from "../models/FleetVehicle.js";
+import { ensureFleetSeeded } from "./fleetController.js";
 
 const DAY_MS = 86_400_000;
 const bookingVehicles = [...vehicles, ...originalVehicles];
@@ -44,7 +46,7 @@ function readDateTime(value, fieldName) {
   return date;
 }
 
-function validateBookingInput(input, idempotencyKey) {
+function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
   if (!IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey ?? "")) {
     throw new BookingInputError("Refresh the page and submit your booking again.");
   }
@@ -98,15 +100,36 @@ function validateBookingInput(input, idempotencyKey) {
     throw new BookingInputError("Choose whether this is a round trip.");
   }
 
-  const vehicle = bookingVehicles.find(
-    (entry) => entry.id === vehicleId,
-  );
-  if (!vehicle) throw new BookingInputError("Choose a valid fleet vehicle.");
-  if (!vehicle.available) {
+  const vehicle =
+    fleet === null
+      ? null
+      : fleet.find((entry) => entry.id === vehicleId || entry.slug === vehicleId);
+  if (fleet !== null && !vehicle) {
+    throw new BookingInputError("Choose a valid fleet vehicle.");
+  }
+  if (vehicle && !vehicle.available) {
     throw new BookingInputError("This vehicle is currently unavailable.");
   }
 
   const rentalDurationDays = Math.ceil(durationMs / DAY_MS);
+  if (!vehicle) {
+    return {
+      idempotencyKey,
+      customerName,
+      customerPhone: phone,
+      customerEmail: email,
+      vehicleId,
+      pickupLocation,
+      returnLocation,
+      pickupDateTime,
+      returnDateTime,
+      rentalDurationDays,
+      rentalType: input.rentalType,
+      roundTrip: input.roundTrip,
+      additionalRequests,
+    };
+  }
+
   const estimatedTotal = vehicle.pricePerDay * rentalDurationDays;
   if (!Number.isSafeInteger(estimatedTotal) || estimatedTotal <= 0) {
     throw new BookingInputError("Unable to calculate this booking estimate.");
@@ -162,16 +185,21 @@ function isDatabaseReady() {
 
 async function createBooking(req, res, next) {
   try {
-    const bookingData = validateBookingInput(
-      req.body,
-      req.get("Idempotency-Key"),
-    );
+    validateBookingInput(req.body, req.get("Idempotency-Key"), null);
     if (!isDatabaseReady()) {
       return res.status(503).json({
         code: "database_unavailable",
         error: "Booking confirmation is temporarily unavailable.",
       });
     }
+
+    await ensureFleetSeeded();
+    const fleet = await FleetVehicle.find({ archived: { $ne: true } }).lean();
+    const bookingData = validateBookingInput(
+      req.body,
+      req.get("Idempotency-Key"),
+      fleet,
+    );
 
     await Booking.init();
     const existing = await Booking.findOne({

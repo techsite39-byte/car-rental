@@ -22,11 +22,12 @@ export function FleetCinematicSection() {
         className="fleet-cinematic__fallback"
         decoding="async"
         draggable={false}
-        fetchPriority="high"
         height={720}
+        loading="lazy"
         priority={false}
         ref={fallbackRef}
         src="/newsec/frame_001.jpg"
+        sizes="100vw"
         unoptimized
         width={1280}
       />

@@ -61,7 +61,7 @@ export function Footer() {
           <Image
             alt=""
             fill
-            priority
+            loading="lazy"
             sizes="(max-width: 700px) 0px, 50vw"
             src="/images/vehicles/kia-carens-clavis.jpg"
           />

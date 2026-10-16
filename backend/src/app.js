@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import { isDatabaseReady } from "./controllers/bookingController.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import fleetRoutes from "./routes/fleetRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 
 function configuredFrontendOrigin() {
@@ -37,6 +38,7 @@ function createApp() {
     });
   });
   app.use("/api/bookings", bookingRoutes);
+  app.use("/api/fleet", fleetRoutes);
   app.use((_req, res) => res.status(404).json({ error: "Endpoint not found." }));
   app.use(errorHandler);
 

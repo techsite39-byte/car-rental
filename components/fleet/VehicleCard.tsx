@@ -34,10 +34,11 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
             }
             className="vehicle-card__image"
             fill
+            loading="lazy"
             sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
             onError={() => setImageFailed(true)}
             src={imageSrc}
-            unoptimized
+            unoptimized={!imageSrc.startsWith("/")}
           />
         </div>
         {featured ? (

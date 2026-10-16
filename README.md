@@ -41,21 +41,35 @@ npm run lint
 npm run build
 ```
 
-## Admin prototype and local data
+## Admin fleet and MongoDB
 
-The admin workspace is available under `/admin`. It has no authentication and
-is not secure for public deployment. Admin changes and public booking/contact
-submissions use browser `localStorage`; they are limited to that browser
-profile/device and are not sent to a server or shared with other users. Clearing
-site data removes these records. The original fleet and offers are seed content;
-booking and enquiry lists begin empty and contain only actual local submissions.
-Requests remain requests and are never marked as confirmed reservations.
+The `/admin` workspace requires a server-configured password. Fleet records are
+read from and written to the `fleet` collection in the `epicdrive` MongoDB
+database. On first access, the backend inserts any missing JSON seed vehicles
+by slug; existing database edits are never overwritten. Deleted seed vehicles
+are archived so that the seed migration does not recreate them. Other prototype
+admin areas still use browser-local data and are not covered by fleet storage.
 
-`lib/admin-data.ts` defines the typed repository contracts and the current
-development-only browser adapter. UI components depend on those repository
-interfaces rather than a database implementation. A future MongoDB adapter
-should implement the same vehicle, booking, enquiry, and deal repositories
-behind a server-side API, with authentication and authorization added before
-any real customer data is used. MongoDB, email/SMS delivery, cloud asset
-storage, and multi-user synchronization are not implemented in this prototype.
-Website settings are a browser-local preview and do not update `data/site.ts`.
+Create a root `.env.local` from `.env.example`, and configure
+`backend/.env.local` from `backend/.env.example`. Set `MONGODB_URI` only in the
+backend environment. Set `ADMIN_PASSWORD`, a random `ADMIN_SESSION_SECRET` of
+at least 32 characters, and an `ADMIN_API_TOKEN` in the root environment. Use
+the exact same `ADMIN_API_TOKEN` in the backend environment. Keep both local
+environment files out of Git. Generate random tokens locally, for example with
+`node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+
+The Next.js server proxies fleet requests to `BOOKING_API_URL`; run the backend
+from `backend/` with `npm install` and `npm run dev`, then run the site with
+`npm run dev` from the repository root. The backend always selects the
+`epicdrive` database regardless of a database name in the URI.
+
+Vehicle image uploads use Cloudinary and are enabled only when
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are
+configured in the root server environment. Uploads accept JPG, PNG, and WebP up
+to 5 MB. Until those values are set, image selection previews locally but saving
+a replacement image returns a configuration error; existing image URLs remain
+unchanged. Cloudinary secrets are never sent to the browser.
+
+Booking records remain requests and are never marked as confirmed reservations.
+Website settings, deals, enquiries, and other non-fleet prototype admin areas
+remain browser-local and do not update their source files.

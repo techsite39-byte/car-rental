@@ -8,8 +8,7 @@ import {
 } from "@/components/fleet/FleetFilters";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
 import { fleetVehicles as seedVehicles } from "@/data/vehicles";
-import { adminRepositories } from "@/lib/admin-data";
-import { useAdminCollection } from "@/lib/use-admin-collection";
+import { useFleetCollection } from "@/lib/use-fleet-collection";
 
 export default function FleetListing() {
   const searchParams = useSearchParams();
@@ -18,10 +17,8 @@ export default function FleetListing() {
     fleetFilterCategories.find((candidate) => candidate.value === requested)
       ?.value ?? "all";
   const [category, setCategory] = useState(initialCategory);
-  const { items: vehicles, error } = useAdminCollection(
-    adminRepositories.vehicles,
-    seedVehicles,
-  );
+  const { items, error } = useFleetCollection(seedVehicles);
+  const vehicles = items.filter((vehicle) => vehicle.showInFleet !== false);
   const visible = useMemo(
     () =>
       vehicles.filter(

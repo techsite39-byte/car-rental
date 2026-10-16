@@ -45,6 +45,55 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.admin-auth-screen {
+  display: grid;
+  width: 100%;
+  min-height: 100vh;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.admin-auth-panel {
+  display: grid;
+  width: min(100%, 25rem);
+  gap: 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.75rem;
+  padding: clamp(1.25rem, 5vw, 2rem);
+  background: var(--admin-surface);
+  box-shadow: 0 1.5rem 5rem rgb(0 0 0 / 28%);
+}
+
+.admin-auth-panel h1,
+.admin-auth-panel p {
+  margin: 0;
+}
+
+.admin-auth-panel h1 {
+  font-size: 1.5rem;
+}
+
+.admin-auth-panel > p:not(.admin-eyebrow) {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.admin-auth-panel form {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-auth-panel > a {
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  text-decoration: none;
+}
+
+.admin-auth-panel > a:hover {
+  color: var(--admin-text);
+}
+
 .admin-desktop-sidebar {
   position: fixed;
   z-index: 30;

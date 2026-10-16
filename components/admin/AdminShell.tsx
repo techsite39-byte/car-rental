@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { siteConfig } from "@/data/site";
 import {
   Bell,
@@ -13,6 +13,7 @@ import {
   Gauge,
   Images,
   LayoutDashboard,
+  LogOut,
   Menu,
   MessageSquareText,
   Percent,
@@ -50,6 +51,9 @@ const pageTitles: Record<string, string> = {
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [access, setAccess] = useState<"checking" | "locked" | "open">("checking");
+  const [authError, setAuthError] = useState("");
+  const [authPending, setAuthPending] = useState(false);
   const title =
     pageTitles[pathname] ??
     (pathname.endsWith("/edit") ? "Edit vehicle" : "Dashboard overview");
@@ -62,6 +66,87 @@ export function AdminShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/admin/session", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const result = await response.json();
+        setAccess(result.authenticated ? "open" : "locked");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setAuthError("Admin access could not be checked. Reload to try again.");
+          setAccess("locked");
+        }
+      });
+    return () => controller.abort();
+  }, []);
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (authPending) return;
+    setAuthPending(true);
+    setAuthError("");
+    const password = new FormData(event.currentTarget).get("password");
+    try {
+      const response = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.authenticated) {
+        throw new Error(result?.error ?? "Unable to sign in.");
+      }
+      setAccess("open");
+    } catch (cause) {
+      setAuthError(cause instanceof Error ? cause.message : "Unable to sign in.");
+    } finally {
+      setAuthPending(false);
+    }
+  }
+
+  async function signOut() {
+    await fetch("/api/admin/session", { method: "DELETE" }).catch(() => undefined);
+    setAccess("locked");
+    setDrawerOpen(false);
+  }
+
+  if (access !== "open") {
+    return (
+      <div className="admin-app">
+        <main className="admin-auth-screen">
+          {access === "checking" ? (
+            <p role="status">Checking admin access…</p>
+          ) : (
+            <section className="admin-auth-panel">
+              <p className="admin-eyebrow">EPICDRIVE / ADMIN</p>
+              <h1>Admin access</h1>
+              <p>Sign in to manage the shared vehicle fleet.</p>
+              <form onSubmit={signIn}>
+                <label className="admin-field" htmlFor="admin-password">
+                  <span>Password</span>
+                  <input
+                    autoComplete="current-password"
+                    id="admin-password"
+                    name="password"
+                    required
+                    type="password"
+                  />
+                </label>
+                {authError ? <p className="admin-error" role="alert">{authError}</p> : null}
+                <button className="admin-button admin-button--primary" disabled={authPending} type="submit">
+                  {authPending ? "Signing in…" : "Sign in"}
+                </button>
+              </form>
+              <Link href="/">Back to website</Link>
+            </section>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   const sidebar = (
     <aside aria-label="Admin sidebar" className="admin-sidebar">
@@ -103,8 +188,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="admin-prototype-card">
           <Gauge aria-hidden="true" size={17} />
           <div>
-            <strong>Prototype mode</strong>
-            <span>Local browser storage</span>
+            <strong>Fleet sync</strong>
+            <span>MongoDB source</span>
           </div>
         </div>
         <Link className="admin-sidebar__help" href="/" onClick={() => setDrawerOpen(false)}>
@@ -177,9 +262,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
               </span>
               <span className="admin-profile__text">
                 <strong>Admin</strong>
-                <small>Prototype account</small>
+                <small>Fleet manager</small>
               </span>
             </div>
+            <button
+              aria-label="Sign out of admin"
+              className="admin-icon-button"
+              onClick={() => void signOut()}
+              title="Sign out"
+              type="button"
+            >
+              <LogOut aria-hidden="true" size={17} />
+            </button>
           </div>
         </header>
         <main className="admin-content">{children}</main>

@@ -12,10 +12,10 @@ test("uses epicdrive as the default database when the URI has no database path",
   );
 });
 
-test("preserves an explicitly selected database name", () => {
+test("always targets the epicdrive database", () => {
   assert.equal(
     databaseNameFromUri("mongodb://localhost:27017/rentals"),
-    "rentals",
+    "epicdrive",
   );
 });
 

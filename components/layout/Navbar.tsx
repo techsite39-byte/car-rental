@@ -112,9 +112,6 @@ export function Navbar() {
   }, [isMenuOpen]);
 
   const closeMenu = () => {
-    if (isMenuOpen) {
-      document.body.style.overflow = previousBodyOverflowRef.current;
-    }
     setIsMenuOpen(false);
   };
 
