@@ -9,6 +9,9 @@ gsap.registerPlugin(ScrollTrigger);
 const FRAME_COUNT = 329;
 const KEYFRAME_INTERVAL = 15;
 const MOBILE_QUERY = "(max-width: 700px)";
+const SOURCE_WIDTH = 1280;
+const SOURCE_HEIGHT = 720;
+const MAX_CANVAS_PIXELS = 6_000_000;
 
 function getFrameUrl(frame: number): string {
   return `/newsec/frame_${String(frame).padStart(3, "0")}.jpg`;
@@ -145,9 +148,20 @@ export function useFleetCinematicAnimation() {
       : [];
 
     function updateDimensions(rectWidth: number, rectHeight: number) {
-      if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
+      if (!canvas || !ctx || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // The installed sequence is 1280×720. Keep the drawing buffer within
+      // the source's useful detail and a safe pixel budget; a larger buffer
+      // cannot restore detail that is absent from these files.
+      const requestedDpr = Math.min(window.devicePixelRatio || 1, 2);
+      const sourceDpr = Math.min(
+        SOURCE_WIDTH / rectWidth,
+        SOURCE_HEIGHT / rectHeight,
+      );
+      const pixelBudgetDpr = Math.sqrt(
+        MAX_CANVAS_PIXELS / (rectWidth * rectHeight),
+      );
+      const dpr = Math.max(0.1, Math.min(requestedDpr, sourceDpr, pixelBudgetDpr));
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -156,10 +170,13 @@ export function useFleetCinematicAnimation() {
         canvas.height = ch;
       }
 
-      // Exact aspect cover presentation matching 1280x720 source
-      const scale = Math.max(cw / 1280, ch / 720);
-      const dw = Math.round(1280 * scale);
-      const dh = Math.round(720 * scale);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      // Cover the viewport without distorting the 16:9 source frames.
+      const scale = Math.max(cw / SOURCE_WIDTH, ch / SOURCE_HEIGHT);
+      const dw = Math.round(SOURCE_WIDTH * scale);
+      const dh = Math.round(SOURCE_HEIGHT * scale);
       const dx = Math.round((cw - dw) / 2);
       const dy = Math.round((ch - dh) / 2);
 
@@ -238,6 +255,7 @@ export function useFleetCinematicAnimation() {
         dx = Math.round((cw - dw) * 0.50);
       }
 
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, dx, y, dw, dh);
       renderedFrameRef.current = frameIndex;
 

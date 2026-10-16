@@ -20,13 +20,13 @@ export function Section2ScrollHero() {
         className="section2-sequence__fallback"
         decoding="async"
         draggable={false}
-        height={720}
+        height={2160}
         sizes="100vw"
         loading="lazy"
         ref={fallbackRef}
-        src="/sec2/frame_001.jpg"
+        src="/Second/Untitled00108000.jpg"
         unoptimized
-        width={1280}
+        width={3840}
       />
       <canvas
         aria-hidden="true"

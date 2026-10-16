@@ -7,12 +7,15 @@ import { SECTION2_TEXT_SCENES } from "@/components/hero/section2TextScenes";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FRAME_COUNT = 420;
+const FRAME_COUNT = 337;
+const LAST_FRAME_INDEX = FRAME_COUNT - 1;
+const SOURCE_WIDTH = 3840;
+const SOURCE_HEIGHT = 2160;
 const KEYFRAME_INTERVAL = 15;
 const MOBILE_QUERY = "(max-width: 700px)";
 
 function getFrameUrl(frame: number): string {
-  return `/sec2/frame_${String(frame).padStart(3, "0")}.jpg`;
+  return `/Second/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
 }
 
 interface DrawParams {
@@ -65,8 +68,8 @@ export function useSection2Animation() {
     let rafId = 0;
     let isVisible = false;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
-    let currentTargetFrame = 1;
-    let lastTargetFrame = 1;
+    let currentTargetFrame = 0;
+    let lastTargetFrame = 0;
     let lastRequestedCenter = -1;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
@@ -74,8 +77,9 @@ export function useSection2Animation() {
     const isMobile = mobileQuery.matches;
 
     // Cache sizing and load limits
-    const maxSlidingCacheSize = isMobile ? 45 : 90;
-    const maxConcurrentLoads = isMobile ? 3 : 5;
+    // 4K decoded bitmaps are expensive; keep a small smooth-scroll window.
+    const maxSlidingCacheSize = isMobile ? 24 : 48;
+    const maxConcurrentLoads = isMobile ? 2 : 4;
     const prefetchAhead = isMobile ? 8 : 12;
     const prefetchBehind = isMobile ? 3 : 5;
 
@@ -106,8 +110,15 @@ export function useSection2Animation() {
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      // Cap DPR to avoid excessive GPU memory fillrate on mobile high-DPI screens
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Keep the backing store sharp without exceeding a bounded GPU memory budget.
+      const pixelBudgetDpr = Math.sqrt(
+        6_000_000 / (rectWidth * rectHeight),
+      );
+      const dpr = Math.min(
+        window.devicePixelRatio || 1,
+        3,
+        pixelBudgetDpr,
+      );
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -116,10 +127,10 @@ export function useSection2Animation() {
         canvas.height = ch;
       }
 
-      // Exact aspect cover presentation matching 1280x720 source
-      const scale = Math.max(cw / 1280, ch / 720);
-      const dw = Math.round(1280 * scale);
-      const dh = Math.round(720 * scale);
+      // Exact aspect-cover presentation matching the 3840x2160 source.
+      const scale = Math.max(cw / SOURCE_WIDTH, ch / SOURCE_HEIGHT);
+      const dw = Math.round(SOURCE_WIDTH * scale);
+      const dh = Math.round(SOURCE_HEIGHT * scale);
       const dx = Math.round((cw - dw) / 2);
       const dy = Math.round((ch - dh) / 2);
 
@@ -139,6 +150,20 @@ export function useSection2Animation() {
     const initialBounds = canvas.getBoundingClientRect();
     updateDimensions(initialBounds.width, initialBounds.height);
 
+    let dprMediaQuery = window.matchMedia(
+      `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+    );
+    const handleDprChange = () => {
+      dprMediaQuery.removeEventListener("change", handleDprChange);
+      const rect = canvas.getBoundingClientRect();
+      updateDimensions(rect.width, rect.height);
+      dprMediaQuery = window.matchMedia(
+        `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+      );
+      dprMediaQuery.addEventListener("change", handleDprChange, { once: true });
+    };
+    dprMediaQuery.addEventListener("change", handleDprChange, { once: true });
+
     // =========================================================================
     // Fast O(1) Frame Drawing with Intelligent Nearest Fallback
     // =========================================================================
@@ -155,12 +180,12 @@ export function useSection2Animation() {
       // Search outward up to 25 frames for the nearest loaded frame
       for (let offset = 1; offset <= 25; offset++) {
         const prev = target - offset;
-        if (prev >= 1) {
+        if (prev >= 0) {
           const pImg = getReadyImage(prev);
           if (pImg) return pImg;
         }
         const next = target + offset;
-        if (next <= FRAME_COUNT) {
+        if (next <= LAST_FRAME_INDEX) {
           const nImg = getReadyImage(next);
           if (nImg) return nImg;
         }
@@ -174,14 +199,14 @@ export function useSection2Animation() {
 
       // Check nearest keyframe
       const nearestKf = Math.max(
-        1,
-        Math.min(FRAME_COUNT, Math.round(target / KEYFRAME_INTERVAL) * KEYFRAME_INTERVAL)
+        0,
+        Math.min(LAST_FRAME_INDEX, Math.round(target / KEYFRAME_INTERVAL) * KEYFRAME_INTERVAL)
       );
       const kfImg = getReadyImage(nearestKf);
       if (kfImg) return kfImg;
 
       // Safe fallbacks to prevent any black/blank frame
-      return getReadyImage(1) || getReadyImage(270) || getReadyImage(FRAME_COUNT);
+      return getReadyImage(0) || getReadyImage(LAST_FRAME_INDEX);
     }
 
     function drawFrame(frameIndex: number) {
@@ -199,9 +224,9 @@ export function useSection2Animation() {
       const aspect = (canvas.clientWidth || cw) / (canvas.clientHeight || ch);
       if (aspect < 1.2 && cw > 0 && dw > 0) {
         // Dynamic mobile focal alignment:
-        // Frames 1..270 (exterior): 0.52
-        // Frames 271..420 (interior cockpit push): smoothly moves towards 0.60
-        const p = (frameIndex - 1) / (FRAME_COUNT - 1);
+        // Early frames (exterior): 0.52
+        // Later frames (interior cockpit push): smoothly move towards 0.60
+        const p = frameIndex / LAST_FRAME_INDEX;
         const mobileAlignX = p <= 0.64 ? 0.52 : 0.52 + (p - 0.64) * (0.08 / 0.36);
         dx = Math.round((cw - dw) * mobileAlignX);
       }
@@ -261,10 +286,8 @@ export function useSection2Animation() {
           if (img.naturalWidth > 0) {
             const isKeyframe =
               frame % KEYFRAME_INTERVAL === 0 ||
-              frame === 1 ||
-              frame === 270 ||
-              frame === 271 ||
-              frame === FRAME_COUNT;
+              frame === 0 ||
+              frame === LAST_FRAME_INDEX;
 
             if (isKeyframe) {
               keyframeCache.set(frame, img);
@@ -318,11 +341,11 @@ export function useSection2Animation() {
 
       for (let i = 1; i <= prefetchAhead; i++) {
         const f = centerFrame + dir * i;
-        if (f >= 1 && f <= FRAME_COUNT) ordered.push(f);
+        if (f >= 0 && f <= LAST_FRAME_INDEX) ordered.push(f);
       }
       for (let i = 1; i <= prefetchBehind; i++) {
         const f = centerFrame - dir * i;
-        if (f >= 1 && f <= FRAME_COUNT) ordered.push(f);
+        if (f >= 0 && f <= LAST_FRAME_INDEX) ordered.push(f);
       }
 
       // Purge requests from queue that are now far from current target (> 40 frames away)
@@ -370,12 +393,12 @@ export function useSection2Animation() {
       const scrollOffset = latestScrollY - cachedStart;
       const progress = Math.max(0, Math.min(1, scrollOffset / cachedDistance));
 
-      // 2. Numerical mapping directly from progress to frame [1 .. FRAME_COUNT]
+      // 2. Numerical mapping directly from progress to frame [0 .. 336].
       const targetFrame = reducedMotionQuery.matches
-        ? 1
+        ? 0
         : Math.min(
-            FRAME_COUNT,
-            Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1))),
+            LAST_FRAME_INDEX,
+            Math.max(0, Math.round(progress * LAST_FRAME_INDEX)),
           );
 
       currentTargetFrame = targetFrame;
@@ -542,6 +565,7 @@ export function useSection2Animation() {
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
       document.removeEventListener("visibilitychange", handleDocumentVisibility);
+      dprMediaQuery.removeEventListener("change", handleDprChange);
 
       // Cleanly revert GSAP DOM modifications before React reconciliation
       ctxGsap?.revert();

@@ -9,6 +9,8 @@ gsap.registerPlugin(ScrollTrigger);
 const MOBILE_QUERY = "(max-width: 700px)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 const KEYFRAME_INTERVAL = 10;
+const MAX_CANVAS_DPR = 3;
+const MAX_CANVAS_PIXELS = 6_000_000;
 
 interface ScrollFrameSequenceOptions {
   frameCount: number;
@@ -94,13 +96,25 @@ export function useScrollFrameSequence({
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0) return;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelBudgetDpr = Math.sqrt(
+        MAX_CANVAS_PIXELS / (rectWidth * rectHeight),
+      );
+      const dpr = Math.min(
+        window.devicePixelRatio || 1,
+        MAX_CANVAS_DPR,
+        pixelBudgetDpr,
+      );
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
       if (canvas.width !== cw || canvas.height !== ch) {
         canvas.width = cw;
         canvas.height = ch;
+        // Resizing the backing store resets 2D context state.
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+        }
       }
 
       // Aspect cover calculation (1280x720 source)
@@ -202,6 +216,19 @@ export function useScrollFrameSequence({
       if (entry) updateDimensions(entry.contentRect.width, entry.contentRect.height);
     });
     resizeObserver.observe(canvas);
+    let dprMediaQuery = window.matchMedia(
+      `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+    );
+    const handleDprChange = () => {
+      dprMediaQuery.removeEventListener("change", handleDprChange);
+      const rect = canvas.getBoundingClientRect();
+      updateDimensions(rect.width, rect.height);
+      dprMediaQuery = window.matchMedia(
+        `(resolution: ${window.devicePixelRatio || 1}dppx)`,
+      );
+      dprMediaQuery.addEventListener("change", handleDprChange, { once: true });
+    };
+    dprMediaQuery.addEventListener("change", handleDprChange, { once: true });
     const handleResize = () => {
       const rect = canvas.getBoundingClientRect();
       updateDimensions(rect.width, rect.height);
@@ -488,6 +515,7 @@ export function useScrollFrameSequence({
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
+      dprMediaQuery.removeEventListener("change", handleDprChange);
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleDocumentVisibility);
       window.removeEventListener("orientationchange", handleOrientation);

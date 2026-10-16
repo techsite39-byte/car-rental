@@ -5392,3 +5392,47 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Responsive hardening for the narrowest supported screens. */
+@media (max-width: 480px) {
+  .site-container,
+  .navbar-shell {
+    width: calc(100% - 1.5rem);
+  }
+
+  .navbar__logo {
+    width: min(10rem, calc(100vw - 6rem));
+  }
+
+  .hero-category__option {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hero-stats__item dd {
+    overflow-wrap: anywhere;
+  }
+
+  .footer-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .footer-back-to-top {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 360px) {
+  .navbar {
+    padding-inline: 0.75rem 0.375rem;
+  }
+
+  .navbar__logo {
+    width: min(9.25rem, calc(100vw - 5rem));
+  }
+
+  .hero-category__option {
+    padding-inline: 0.15rem;
+  }
+}
