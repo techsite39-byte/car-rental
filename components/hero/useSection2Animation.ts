@@ -11,11 +11,11 @@ const FRAME_COUNT = 337;
 const LAST_FRAME_INDEX = FRAME_COUNT - 1;
 const SOURCE_WIDTH = 3840;
 const SOURCE_HEIGHT = 2160;
-const KEYFRAME_INTERVAL = 15;
+const KEYFRAME_INTERVAL = 42;
 const MOBILE_QUERY = "(max-width: 700px)";
 
-function getFrameUrl(frame: number, directory: "Second" | "Second-mobile"): string {
-  return `/${directory}/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
+function getFrameUrl(frame: number): string {
+  return `/Second/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
 }
 
 interface DrawParams {
@@ -72,19 +72,18 @@ export function useSection2Animation() {
     let lastTargetFrame = 0;
     let lastRequestedCenter = -1;
 
-    const mobileQuery = window.matchMedia(MOBILE_QUERY);
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const isMobile = mobileQuery.matches;
-    const frameDirectory = isMobile ? "Second-mobile" : "Second";
-    const sourceWidth = isMobile ? 1280 : SOURCE_WIDTH;
-    const sourceHeight = isMobile ? 720 : SOURCE_HEIGHT;
+    const isMobile = window.matchMedia(MOBILE_QUERY).matches;
+    const sourceWidth = SOURCE_WIDTH;
+    const sourceHeight = SOURCE_HEIGHT;
 
     // Cache sizing and load limits
     // 4K decoded bitmaps are expensive; keep a small smooth-scroll window.
-    const maxSlidingCacheSize = isMobile ? 24 : 48;
-    const maxConcurrentLoads = isMobile ? 2 : 4;
-    const prefetchAhead = isMobile ? 8 : 12;
-    const prefetchBehind = isMobile ? 3 : 5;
+    const maxSlidingCacheSize = 4;
+    const maxKeyframeCacheSize = 4;
+    const maxConcurrentLoads = 3;
+    const prefetchAhead = 8;
+    const prefetchBehind = 3;
 
     // Caches:
     // 1. Permanent keyframe spine (every 25th frame: ~31 frames total)
@@ -113,15 +112,11 @@ export function useSection2Animation() {
     function updateDimensions(rectWidth: number, rectHeight: number) {
       if (!canvas || rectWidth <= 0 || rectHeight <= 0 || disposed) return;
 
-      // Keep the backing store sharp without exceeding a bounded GPU memory budget.
-      const pixelBudgetDpr = Math.sqrt(
-        (isMobile ? 2_500_000 : 6_000_000) / (rectWidth * rectHeight),
-      );
-      const dpr = Math.min(
-        window.devicePixelRatio || 1,
-        isMobile ? 2 : 3,
-        pixelBudgetDpr,
-      );
+      // Match the display's physical pixels while keeping the canvas no larger
+      // than the 4K source or an ~8.3MP drawing-buffer budget.
+      const pixelBudgetDpr = Math.sqrt(8_294_400 / (rectWidth * rectHeight));
+      const sourceDpr = Math.min(SOURCE_WIDTH / rectWidth, SOURCE_HEIGHT / rectHeight);
+      const dpr = Math.min(window.devicePixelRatio || 1, pixelBudgetDpr, sourceDpr);
       const cw = Math.round(rectWidth * dpr);
       const ch = Math.round(rectHeight * dpr);
 
@@ -247,19 +242,21 @@ export function useSection2Animation() {
     // Memory-Bounded Cache Manager & Async Decode Pipeline
     // =========================================================================
     function trimCache(currentCenter: number) {
-      // Hysteresis: only trim when cache exceeds limit by threshold to avoid frequent sorting
-      if (slidingCache.size <= maxSlidingCacheSize + 10) return;
+      for (const [cache, limit] of [
+        [slidingCache, maxSlidingCacheSize],
+        [keyframeCache, maxKeyframeCacheSize],
+      ] as const) {
+        if (cache.size <= limit) continue;
+        const keys = Array.from(cache.keys());
+        keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
 
-      const keys = Array.from(slidingCache.keys());
-      keys.sort((a, b) => Math.abs(b - currentCenter) - Math.abs(a - currentCenter));
-
-      const removeCount = slidingCache.size - maxSlidingCacheSize;
-      for (let i = 0; i < removeCount; i++) {
-        const frameToRemove = keys[i];
-        const oldImg = slidingCache.get(frameToRemove);
-        if (oldImg) {
-          oldImg.src = ""; // Force browser to immediately release GPU bitmap memory
-          slidingCache.delete(frameToRemove);
+        for (let i = 0; i < cache.size - limit; i++) {
+          const frameToRemove = keys[i];
+          const oldImg = cache.get(frameToRemove);
+          if (oldImg) {
+            oldImg.src = "";
+            cache.delete(frameToRemove);
+          }
         }
       }
     }
@@ -296,8 +293,8 @@ export function useSection2Animation() {
               keyframeCache.set(frame, img);
             } else {
               slidingCache.set(frame, img);
-              trimCache(currentTargetFrame);
             }
+            trimCache(currentTargetFrame);
 
             // If the newly ready frame is what the user is actively viewing, re-render
             if (
@@ -330,7 +327,7 @@ export function useSection2Animation() {
           processQueue();
         };
 
-        img.src = getFrameUrl(frame, frameDirectory);
+        img.src = getFrameUrl(frame);
       }
     }
 
