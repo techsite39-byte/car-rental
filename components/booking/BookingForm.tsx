@@ -91,9 +91,7 @@ function formatDateTime(value: string) {
 
 export function BookingForm({ initialContext }: BookingFormProps) {
   const router = useRouter();
-  const { items: fleetVehicles } = useFleetCollection(bookingVehicles, {
-    includeHidden: true,
-  });
+  const { items: fleetVehicles } = useFleetCollection(bookingVehicles);
   const pageRef = useRef<HTMLDivElement>(null);
   const confirmationRef = useRef<HTMLElement>(null);
   const fieldRefs = useRef<Partial<Record<BookingField, BookingInput | null>>>(
@@ -103,6 +101,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     body: string;
     key: string;
   } | null>(null);
+  const submissionInProgress = useRef(false);
   const [vehicleIdentifier, setVehicleIdentifier] = useState(() => {
     const initialVehicle = fleetVehicles.find(
       (vehicle) =>
@@ -204,6 +203,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
 
   async function submitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInProgress.current) return;
     setRequestError("");
 
     const nextErrors: BookingErrors = {};
@@ -264,6 +264,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
       return;
     }
 
+    submissionInProgress.current = true;
     setIsSubmitting(true);
     const requestBody = JSON.stringify({
       customerName: customerName.trim(),
@@ -320,6 +321,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
         "We could not reach the booking service. Your booking was not saved. Please try again.",
       );
     } finally {
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
   }
@@ -383,7 +385,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
   return (
     <div className="booking-layout" ref={pageRef}>
       <div className="booking-layout__main">
-        <form className="booking-form" noValidate onSubmit={submitBooking}>
+        <form className="booking-form" method="post" noValidate onSubmit={submitBooking}>
           <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
             <legend className="booking-group__eyebrow">01 / VEHICLE</legend>
             <div className="booking-group__content">

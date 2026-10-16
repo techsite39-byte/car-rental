@@ -63,20 +63,21 @@ export function useSection2Animation() {
     let disposed = false;
     let ticking = false;
     let rafId = 0;
-    let isVisible = true;
+    let isVisible = false;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
     let currentTargetFrame = 1;
     let lastTargetFrame = 1;
     let lastRequestedCenter = -1;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const isMobile = mobileQuery.matches;
 
     // Cache sizing and load limits
     const maxSlidingCacheSize = isMobile ? 45 : 90;
     const maxConcurrentLoads = isMobile ? 3 : 5;
-    const prefetchAhead = isMobile ? 18 : 28;
-    const prefetchBehind = isMobile ? 6 : 10;
+    const prefetchAhead = isMobile ? 8 : 12;
+    const prefetchBehind = isMobile ? 3 : 5;
 
     // Caches:
     // 1. Permanent keyframe spine (every 25th frame: ~31 frames total)
@@ -308,6 +309,7 @@ export function useSection2Animation() {
     }
 
     function requestFramesAround(centerFrame: number, scrollDir: number) {
+      if (reducedMotionQuery.matches) return;
       if (centerFrame === lastRequestedCenter && loadQueue.length > 0) return;
       lastRequestedCenter = centerFrame;
 
@@ -355,42 +357,7 @@ export function useSection2Animation() {
     // Initial Load & Background Keyframe Spine
     // =========================================================================
 
-    // 1. Immediately request initial frames (1..15), boundary frames (270, 271), and final frame
-    for (let f = 1; f <= 15; f++) {
-      queuedSet.add(f);
-      loadQueue.push(f);
-    }
-    for (const bFrame of [270, 271, FRAME_COUNT]) {
-      if (!queuedSet.has(bFrame)) {
-        queuedSet.add(bFrame);
-        loadQueue.push(bFrame);
-      }
-    }
-    processQueue();
-
-    // 2. Progressive background keyframe spine in small batches
-    const keyframes = Array.from(
-      { length: Math.floor(FRAME_COUNT / KEYFRAME_INTERVAL) },
-      (_, i) => (i + 1) * KEYFRAME_INTERVAL
-    );
-
-    const timeouts: NodeJS.Timeout[] = [];
-    const batchSize = 6;
-    for (let i = 0; i < keyframes.length; i += batchSize) {
-      const batch = keyframes.slice(i, i + batchSize);
-      const batchIndex = Math.floor(i / batchSize);
-      const t = setTimeout(() => {
-        if (disposed) return;
-        for (const kf of batch) {
-          if (!keyframeCache.has(kf) && !queuedSet.has(kf) && !slidingCache.has(kf)) {
-            queuedSet.add(kf);
-            loadQueue.push(kf);
-          }
-        }
-        processQueue();
-      }, 150 + batchIndex * 250);
-      timeouts.push(t);
-    }
+    // Sequence frames are requested only around the current scroll position.
 
     // =========================================================================
     // ONE Passive Scroll Listener + ONE RequestAnimationFrame Pipeline
@@ -404,20 +371,24 @@ export function useSection2Animation() {
       const progress = Math.max(0, Math.min(1, scrollOffset / cachedDistance));
 
       // 2. Numerical mapping directly from progress to frame [1 .. FRAME_COUNT]
-      const targetFrame = Math.min(
-        FRAME_COUNT,
-        Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1)))
-      );
+      const targetFrame = reducedMotionQuery.matches
+        ? 1
+        : Math.min(
+            FRAME_COUNT,
+            Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1))),
+          );
 
       currentTargetFrame = targetFrame;
       const scrollDir = targetFrame >= lastTargetFrame ? 1 : -1;
       lastTargetFrame = targetFrame;
 
       // 3. Request prefetching around target
-      requestFramesAround(targetFrame, scrollDir);
+      if (!reducedMotionQuery.matches) {
+        requestFramesAround(targetFrame, scrollDir);
+      }
 
       // 4. Draw frame if changed
-      if (targetFrame !== renderedFrameRef.current) {
+      if (!reducedMotionQuery.matches && targetFrame !== renderedFrameRef.current) {
         drawFrame(targetFrame);
       }
 
@@ -511,7 +482,12 @@ export function useSection2Animation() {
 
     const scrollDistance = window.innerHeight * (isMobile ? 3.0 : 4.2);
 
-    const ctxGsap = gsap.context(() => {
+    let ctxGsap: gsap.Context | undefined;
+    if (reducedMotionQuery.matches) {
+      cachedStart = section.getBoundingClientRect().top + latestScrollY;
+      cachedDistance = Math.max(1, section.clientHeight);
+    } else {
+      ctxGsap = gsap.context(() => {
       const trigger = ScrollTrigger.create({
         trigger: section,
         start: "top top",
@@ -532,7 +508,8 @@ export function useSection2Animation() {
 
       cachedStart = trigger.start;
       cachedDistance = Math.max(1, trigger.end - trigger.start);
-    }, section);
+      }, section);
+    }
 
     // Initial draw
     updateSection2();
@@ -558,7 +535,6 @@ export function useSection2Animation() {
 
     return () => {
       disposed = true;
-      timeouts.forEach((t) => clearTimeout(t));
       cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", handleResize);
@@ -568,7 +544,7 @@ export function useSection2Animation() {
       document.removeEventListener("visibilitychange", handleDocumentVisibility);
 
       // Cleanly revert GSAP DOM modifications before React reconciliation
-      ctxGsap.revert();
+      ctxGsap?.revert();
 
       for (const img of inFlight.values()) {
         img.src = "";

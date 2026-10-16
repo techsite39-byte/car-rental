@@ -266,6 +266,7 @@ button {
 }
 
 .navbar__menu-toggle {
+  position: relative;
   display: none;
   width: 2.625rem;
   height: 2.625rem;
@@ -791,6 +792,12 @@ button {
 .hero-category__option[aria-pressed="true"] {
   background: var(--accent);
   color: #10120d;
+}
+
+.navbar__menu-toggle::before {
+  position: absolute;
+  inset: -1px;
+  content: "";
 }
 
 .hero-category__vehicle {

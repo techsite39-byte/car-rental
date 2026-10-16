@@ -1,8 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useScrollFrameSequence } from "@/components/hero/useScrollFrameSequence";
 import "./FrameSequenceHero.css";
+
+/* eslint-disable @next/next/no-img-element */
 
 const FRAME_COUNT = 116;
 
@@ -26,17 +27,15 @@ export function FrameSequenceHero() {
       className={`frame-sequence${isReady ? " frame-sequence--ready" : ""}`}
       ref={sectionRef}
     >
-      <Image
+      <img
         alt="BMW automotive showcase"
         className="frame-sequence__fallback"
         decoding="async"
         draggable={false}
-        fetchPriority="high"
         height={720}
-        priority
+        loading="eager"
         ref={fallbackRef}
         src={getFrameUrl(1)}
-        unoptimized
         width={1280}
       />
       <canvas

@@ -66,7 +66,7 @@ export function useScrollFrameSequence({
     let disposed = false;
     let rafId = 0;
     let isLoopRunning = false;
-    let isVisible = true;
+    let isVisible = false;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
     const reducedMotionQuery = window.matchMedia(REDUCED_MOTION_QUERY);
@@ -86,8 +86,8 @@ export function useScrollFrameSequence({
 
     const maxCacheSize = mobileQuery.matches ? mobileCacheSize : desktopCacheSize;
     const maxConcurrentLoads = mobileQuery.matches ? 2 : 4;
-    const prefetchAhead = mobileQuery.matches ? 14 : 20;
-    const prefetchBehind = 5;
+    const prefetchAhead = mobileQuery.matches ? 8 : 12;
+    const prefetchBehind = mobileQuery.matches ? 3 : 5;
 
     // Dimension precalculation: responsive cover presentation (object-fit: cover equivalent)
     // Frame 1 source resolution is 1280x720 (16:9)
@@ -202,6 +202,11 @@ export function useScrollFrameSequence({
       if (entry) updateDimensions(entry.contentRect.width, entry.contentRect.height);
     });
     resizeObserver.observe(canvas);
+    const handleResize = () => {
+      const rect = canvas.getBoundingClientRect();
+      updateDimensions(rect.width, rect.height);
+    };
+    window.addEventListener("resize", handleResize, { passive: true });
 
     // =========================================================================
     // Intelligent Cache Manager & Decoupled Async Loader
@@ -233,7 +238,8 @@ export function useScrollFrameSequence({
           continue;
         }
 
-        const img = new Image();
+        const poster = frame === initialFrame ? fallbackRef.current : null;
+        const img = poster ?? new Image();
         img.decoding = "async";
         inFlight.set(frame, img);
         activeLoads++;
@@ -267,7 +273,7 @@ export function useScrollFrameSequence({
           processQueue();
         };
 
-        img.onload = () => {
+        const handleImageLoad = () => {
           if (typeof img.decode === "function") {
             img.decode().then(handleLoaded).catch(handleLoaded);
           } else {
@@ -275,14 +281,23 @@ export function useScrollFrameSequence({
           }
         };
 
-        img.onerror = () => {
+        const handleImageError = () => {
           inFlight.delete(frame);
           activeLoads--;
           if (disposed) return;
           processQueue();
         };
 
-        img.src = getFrameUrl(frame);
+        img.addEventListener("load", handleImageLoad, { once: true });
+        img.addEventListener("error", handleImageError, { once: true });
+        if (poster) {
+          if (poster.complete) {
+            if (poster.naturalWidth > 0) handleImageLoad();
+            else handleImageError();
+          }
+        } else {
+          img.src = getFrameUrl(frame);
+        }
       }
     }
 
@@ -290,6 +305,7 @@ export function useScrollFrameSequence({
     let lastPrunedCenter = -1;
 
     function requestFramesAround(centerFrame: number, scrollDir: number) {
+      if (reducedMotionQuery.matches) return;
       if (centerFrame === lastRequestedCenter) return;
       lastRequestedCenter = centerFrame;
 
@@ -343,42 +359,11 @@ export function useScrollFrameSequence({
     // Initial Load & Background Keyframe Spine Preloader
     // =========================================================================
 
-    // Reduced-motion users only need the static first frame. Other users get a
-    // short critical window, then the sequence is expanded during idle time.
-    const initialFrameCount = reducedMotionQuery.matches ? 1 : 15;
-    for (let f = 1; f <= initialFrameCount; f++) {
-      queuedSet.add(f);
-      preloadFrames.add(f);
-      loadQueue.push(f);
-    }
-    if (!reducedMotionQuery.matches && !queuedSet.has(frameCount)) {
-      queuedSet.add(frameCount);
-      preloadFrames.add(frameCount);
-      loadQueue.push(frameCount);
-    }
-    processQueue();
-
-    // 2. Progressively prefetch keyframes across Section 1 in idle chunks
-    const keyframes = reducedMotionQuery.matches
-      ? []
-      : Array.from(
-          { length: Math.ceil(frameCount / KEYFRAME_INTERVAL) },
-          (_, i) => Math.min(frameCount, (i + 1) * KEYFRAME_INTERVAL),
-        );
-
-    const timer = setTimeout(() => {
-      if (disposed) return;
-      for (const kf of keyframes) {
-        if (!keyframeCache.has(kf) && !slidingCache.has(kf)) {
-          preloadFrames.add(kf);
-          if (!queuedSet.has(kf) && !inFlight.has(kf)) {
-            queuedSet.add(kf);
-            loadQueue.push(kf);
-          }
-        }
-      }
-      processQueue();
-    }, 120);
+    // The visible poster is the only frame requested until the section enters
+    // the observer's lead-in area. Scroll updates then fill a small local window.
+    queuedSet.add(initialFrame);
+    preloadFrames.add(initialFrame);
+    loadQueue.push(initialFrame);
 
     // =========================================================================
     // Decoupled RequestAnimationFrame Render Loop with Smooth Damping
@@ -500,10 +485,10 @@ export function useScrollFrameSequence({
 
     return () => {
       disposed = true;
-      clearTimeout(timer);
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
+      window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleDocumentVisibility);
       window.removeEventListener("orientationchange", handleOrientation);
       trigger?.kill();

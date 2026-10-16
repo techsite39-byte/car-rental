@@ -106,20 +106,21 @@ export function useFleetCinematicAnimation() {
     let disposed = false;
     let ticking = false;
     let rafId = 0;
-    let isVisible = true;
+    let isVisible = false;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
     let currentTargetFrame = 1;
     let lastTargetFrame = 1;
     let lastRequestedCenter = -1;
 
     const mobileQuery = window.matchMedia(MOBILE_QUERY);
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const isMobile = mobileQuery.matches;
 
     // Cache limits & prefetch windows
     const maxSlidingCacheSize = isMobile ? 40 : 80;
     const maxConcurrentLoads = isMobile ? 3 : 5;
-    const prefetchAhead = isMobile ? 16 : 26;
-    const prefetchBehind = isMobile ? 6 : 10;
+    const prefetchAhead = isMobile ? 8 : 12;
+    const prefetchBehind = isMobile ? 3 : 5;
 
     // Caches:
     // 1. Permanent keyframe spine (every 15th frame)
@@ -322,6 +323,7 @@ export function useFleetCinematicAnimation() {
     }
 
     function requestFramesAround(centerFrame: number, scrollDir: number) {
+      if (reducedMotionQuery.matches) return;
       if (centerFrame === lastRequestedCenter) return;
       lastRequestedCenter = centerFrame;
 
@@ -347,44 +349,7 @@ export function useFleetCinematicAnimation() {
       processQueue();
     }
 
-    // 1. Initial critical frames (1..20, 210, 329)
-    for (let f = 1; f <= 20; f++) {
-      queuedSet.add(f);
-      loadQueue.push(f);
-    }
-    if (!queuedSet.has(210)) {
-      queuedSet.add(210);
-      loadQueue.push(210);
-    }
-    if (!queuedSet.has(FRAME_COUNT)) {
-      queuedSet.add(FRAME_COUNT);
-      loadQueue.push(FRAME_COUNT);
-    }
-    processQueue();
-
-    // 2. Progressive background keyframe spine in batches
-    const keyframes = Array.from(
-      { length: Math.floor(FRAME_COUNT / KEYFRAME_INTERVAL) },
-      (_, i) => (i + 1) * KEYFRAME_INTERVAL
-    );
-
-    const timeouts: NodeJS.Timeout[] = [];
-    const batchSize = 6;
-    for (let i = 0; i < keyframes.length; i += batchSize) {
-      const batch = keyframes.slice(i, i + batchSize);
-      const batchIndex = Math.floor(i / batchSize);
-      const t = setTimeout(() => {
-        if (disposed) return;
-        for (const kf of batch) {
-          if (!keyframeCache.has(kf) && !queuedSet.has(kf) && !slidingCache.has(kf)) {
-            queuedSet.add(kf);
-            loadQueue.push(kf);
-          }
-        }
-        processQueue();
-      }, 150 + batchIndex * 250);
-      timeouts.push(t);
-    }
+    // Sequence frames are requested only around the current scroll position.
 
     // =========================================================================
     // Passive Scroll Listener + RequestAnimationFrame
@@ -396,18 +361,22 @@ export function useFleetCinematicAnimation() {
       const scrollOffset = latestScrollY - cachedStart;
       const progress = Math.max(0, Math.min(1, scrollOffset / cachedDistance));
 
-      const targetFrame = Math.min(
-        FRAME_COUNT,
-        Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1)))
-      );
+      const targetFrame = reducedMotionQuery.matches
+        ? 1
+        : Math.min(
+            FRAME_COUNT,
+            Math.max(1, Math.round(1 + progress * (FRAME_COUNT - 1))),
+          );
 
       currentTargetFrame = targetFrame;
       const scrollDir = targetFrame >= lastTargetFrame ? 1 : -1;
       lastTargetFrame = targetFrame;
 
-      requestFramesAround(targetFrame, scrollDir);
+      if (!reducedMotionQuery.matches) {
+        requestFramesAround(targetFrame, scrollDir);
+      }
 
-      if (targetFrame !== renderedFrameRef.current) {
+      if (!reducedMotionQuery.matches && targetFrame !== renderedFrameRef.current) {
         drawFrame(targetFrame);
       }
 
@@ -539,10 +508,10 @@ export function useFleetCinematicAnimation() {
         candidate.parentElement?.classList.contains("pin-spacer"),
       );
 
-    if (
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      arePrecedingSectionsPinned()
-    ) {
+    if (reducedMotionQuery.matches) {
+      cachedStart = section.getBoundingClientRect().top + latestScrollY;
+      cachedDistance = Math.max(1, section.clientHeight);
+    } else if (arePrecedingSectionsPinned()) {
       createTrigger();
     } else if (section.parentElement) {
       layoutObserver = new MutationObserver(() => {
@@ -577,7 +546,6 @@ export function useFleetCinematicAnimation() {
 
     return () => {
       disposed = true;
-      timeouts.forEach((t) => clearTimeout(t));
       cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", handleResize);
