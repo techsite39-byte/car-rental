@@ -6,7 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef, useState } from "react";
-import type { Vehicle } from "@/data/vehicles";
+import { vehicleCategoryLabels, type Vehicle } from "@/data/vehicles";
 import { formatINR } from "@/lib/currency";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -15,30 +15,14 @@ interface VehicleDetailHeroProps {
   vehicle: Vehicle;
 }
 
-const categoryLabels: Record<Vehicle["category"], string> = {
-  sport: "Sport",
-  suv: "SUV",
-  sedan: "Sedan",
-  electric: "Electric",
-  convertible: "Convertible",
-};
-
-const fallbackByCategory: Record<Vehicle["category"], string> = {
-  sport: "/images/vehicles/hero-sport-placeholder.svg",
-  suv: "/images/vehicles/hero-suv-placeholder.svg",
-  sedan: "/images/vehicles/hero-sedan-placeholder.svg",
-  electric: "/images/vehicles/hero-electric-placeholder.svg",
-  convertible: "/images/vehicles/hero-sport-placeholder.svg",
-};
-
 export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
   const heroRef = useRef<HTMLElement>(null);
   const artworkRef = useRef<HTMLDivElement>(null);
   const [imageFailed, setImageFailed] = useState(false);
   const imageSrc =
-    imageFailed || !vehicle.imagePlaceholder
-      ? fallbackByCategory[vehicle.category]
-      : vehicle.imagePlaceholder;
+    imageFailed || !vehicle.image
+      ? "/images/vehicles/vehicle-photo-unavailable.svg"
+      : vehicle.image;
 
   useEffect(() => {
     const hero = heroRef.current;
@@ -154,7 +138,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
             <span aria-hidden="true">←</span> Back to fleet
           </Link>
           <p className="vehicle-detail__eyebrow" data-vehicle-eyebrow>
-            VÉLOCE <span>/</span> {categoryLabels[vehicle.category]}
+            EPICDRIVE <span>/</span> {vehicleCategoryLabels[vehicle.category]}
           </p>
           <h1
             className="vehicle-detail-hero__title"
@@ -167,7 +151,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
             {vehicle.description}
           </p>
           <p className="vehicle-detail-hero__price" data-vehicle-price>
-            <span>From</span>
+            <span>Starting at</span>
             <strong>{formatINR(vehicle.pricePerDay)}</strong>
             <span>/ day</span>
           </p>
@@ -177,7 +161,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
                 className="button button--primary button--md"
                 href={`/booking?vehicle=${encodeURIComponent(vehicle.slug)}`}
               >
-                Reserve this vehicle
+                Book Now
                 <ArrowUpRight aria-hidden="true" size={17} />
               </Link>
             ) : (
@@ -196,7 +180,7 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
         </div>
 
         <div
-          aria-label={`${vehicle.name} ${vehicle.type} illustration`}
+          aria-label={`${vehicle.name} vehicle photograph`}
           className="vehicle-detail-hero__visual"
           data-vehicle-artwork
           ref={artworkRef}
@@ -204,7 +188,11 @@ export function VehicleDetailHero({ vehicle }: VehicleDetailHeroProps) {
         >
           <div aria-hidden="true" className="vehicle-detail-hero__visual-glow" />
           <Image
-            alt={`${vehicle.name} ${vehicle.type}`}
+            alt={
+              imageSrc !== vehicle.image
+                ? `Photo unavailable for ${vehicle.name}`
+                : `${vehicle.name} ${vehicle.type}`
+            }
             className="vehicle-detail-hero__image"
             fill
             loading="eager"

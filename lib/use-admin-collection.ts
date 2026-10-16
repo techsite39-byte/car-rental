@@ -25,10 +25,10 @@ export function useAdminCollection<T extends { id: string }>(
     };
 
     refresh();
-    window.addEventListener("veloce-admin-data", refresh);
+    window.addEventListener("epicdrive-admin-data", refresh);
     window.addEventListener("storage", refresh);
     return () => {
-      window.removeEventListener("veloce-admin-data", refresh);
+      window.removeEventListener("epicdrive-admin-data", refresh);
       window.removeEventListener("storage", refresh);
     };
   }, [repository]);

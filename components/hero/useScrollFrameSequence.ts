@@ -80,6 +80,7 @@ export function useScrollFrameSequence({
     // Queue of requested frames
     const loadQueue: number[] = [];
     const queuedSet = new Set<number>();
+    const preloadFrames = new Set<number>();
     let activeLoads = 0;
 
     const maxCacheSize = mobileQuery.matches ? mobileCacheSize : desktopCacheSize;
@@ -255,7 +256,11 @@ export function useScrollFrameSequence({
           trimCache(currentTarget);
 
           // If the newly loaded frame is what we are waiting for or close to it, re-render
-          if (Math.abs(frame - currentTarget) <= 1 && renderedFrameRef.current !== frame) {
+          if (
+            frame === currentTarget ||
+            (Math.abs(frame - currentTarget) <= 1 &&
+              renderedFrameRef.current !== currentTarget)
+          ) {
             drawFrame(currentTarget);
           }
 
@@ -282,6 +287,7 @@ export function useScrollFrameSequence({
     }
 
     let lastRequestedCenter = -1;
+    let lastPrunedCenter = -1;
 
     function requestFramesAround(centerFrame: number, scrollDir: number) {
       if (centerFrame === lastRequestedCenter) return;
@@ -299,11 +305,35 @@ export function useScrollFrameSequence({
         if (f >= 1 && f <= frameCount) ordered.push(f);
       }
 
-      for (const f of ordered) {
-        if (!slidingCache.has(f) && !inFlight.has(f) && !queuedSet.has(f)) {
-          queuedSet.add(f);
-          loadQueue.unshift(f);
+      const desiredFrames = new Set(ordered);
+      if (lastPrunedCenter < 0) {
+        lastPrunedCenter = centerFrame;
+      } else if (Math.abs(centerFrame - lastPrunedCenter) >= prefetchBehind) {
+        for (let i = loadQueue.length - 1; i >= 0; i--) {
+          const queuedFrame = loadQueue[i];
+          if (!desiredFrames.has(queuedFrame) && !preloadFrames.has(queuedFrame)) {
+            loadQueue.splice(i, 1);
+            queuedSet.delete(queuedFrame);
+          }
         }
+        lastPrunedCenter = centerFrame;
+      }
+
+      const pendingFrames = ordered.filter(
+        (frame) =>
+          !slidingCache.has(frame) &&
+          !keyframeCache.has(frame) &&
+          !inFlight.has(frame)
+      );
+      const pendingSet = new Set(pendingFrames);
+
+      for (let i = loadQueue.length - 1; i >= 0; i--) {
+        if (pendingSet.has(loadQueue[i])) loadQueue.splice(i, 1);
+      }
+      for (let i = pendingFrames.length - 1; i >= 0; i--) {
+        const frame = pendingFrames[i];
+        queuedSet.add(frame);
+        loadQueue.unshift(frame);
       }
 
       processQueue();
@@ -316,10 +346,12 @@ export function useScrollFrameSequence({
     // 1. Eagerly load initial frames (1..15) and final frame (frameCount)
     for (let f = 1; f <= 15; f++) {
       queuedSet.add(f);
+      preloadFrames.add(f);
       loadQueue.push(f);
     }
     if (!queuedSet.has(frameCount)) {
       queuedSet.add(frameCount);
+      preloadFrames.add(frameCount);
       loadQueue.push(frameCount);
     }
     processQueue();
@@ -333,9 +365,12 @@ export function useScrollFrameSequence({
     const timer = setTimeout(() => {
       if (disposed) return;
       for (const kf of keyframes) {
-        if (!keyframeCache.has(kf) && !queuedSet.has(kf) && !slidingCache.has(kf)) {
-          queuedSet.add(kf);
-          loadQueue.push(kf);
+        if (!keyframeCache.has(kf) && !slidingCache.has(kf)) {
+          preloadFrames.add(kf);
+          if (!queuedSet.has(kf) && !inFlight.has(kf)) {
+            queuedSet.add(kf);
+            loadQueue.push(kf);
+          }
         }
       }
       processQueue();
@@ -443,6 +478,7 @@ export function useScrollFrameSequence({
       inFlight.clear();
       loadQueue.length = 0;
       queuedSet.clear();
+      preloadFrames.clear();
       slidingCache.clear();
       keyframeCache.clear();
     };

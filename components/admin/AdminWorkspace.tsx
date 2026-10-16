@@ -26,7 +26,12 @@ import {
 } from "react";
 import { deals as seedDeals } from "@/data/deals";
 import { siteConfig } from "@/data/site";
-import { vehicles as seedVehicles, type Vehicle, type VehicleCategory } from "@/data/vehicles";
+import {
+  vehicles as seedVehicles,
+  vehicleCategoryLabels,
+  type Vehicle,
+  type VehicleCategory,
+} from "@/data/vehicles";
 import {
   adminRepositories,
   createRecordId,
@@ -51,26 +56,12 @@ type WorkspacePage =
   | "gallery"
   | "settings";
 
-const categoryLabels: Record<VehicleCategory, string> = {
-  sport: "Sport",
-  suv: "SUV",
-  sedan: "Sedan",
-  electric: "Electric",
-  convertible: "Convertible",
-};
+const categoryLabels = vehicleCategoryLabels;
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "medium",
   timeStyle: "short",
 });
-
-const fallbackImages: Record<VehicleCategory, string> = {
-  sport: "/images/vehicles/hero-sport-placeholder.svg",
-  suv: "/images/vehicles/hero-suv-placeholder.svg",
-  sedan: "/images/vehicles/hero-sedan-placeholder.svg",
-  electric: "/images/vehicles/hero-electric-placeholder.svg",
-  convertible: "/images/vehicles/hero-sport-placeholder.svg",
-};
 
 interface VehicleFormValue {
   brand: string;
@@ -100,7 +91,7 @@ const emptyVehicle: VehicleFormValue = {
   seats: "5",
   horsepower: "",
   acceleration: "",
-  transmission: "Automatic",
+  transmission: "",
   fuelType: "Petrol",
   description: "",
   image: "",
@@ -117,9 +108,9 @@ function vehicleToForm(vehicle: Vehicle): VehicleFormValue {
     category: vehicle.category,
     pricePerDay: String(vehicle.pricePerDay),
     seats: String(vehicle.seats),
-    horsepower: String(vehicle.horsepower),
-    acceleration: String(vehicle.acceleration),
-    transmission: vehicle.transmission,
+    horsepower: String(vehicle.horsepower ?? ""),
+    acceleration: String(vehicle.acceleration ?? ""),
+    transmission: vehicle.transmission ?? "",
     fuelType: vehicle.fuelType,
     description: vehicle.description,
     image: vehicle.image,
@@ -187,7 +178,7 @@ function VehicleImage({
   const [failed, setFailed] = useState(false);
   const src =
     failed || !vehicle.image
-      ? fallbackImages[vehicle.category]
+      ? "/images/vehicles/vehicle-photo-unavailable.svg"
       : vehicle.image;
   return (
     <div className={`admin-vehicle-image ${className}`}>
@@ -558,7 +549,7 @@ function FleetManagement({
                 <thead><tr><th>Vehicle</th><th>Category</th><th>Price / day</th><th>Availability</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
                 <tbody>{filtered.map((vehicle) => (
                   <tr key={vehicle.id}>
-                    <td><div className="admin-vehicle-cell"><VehicleImage vehicle={vehicle} /><span><strong>{vehicle.brand} {vehicle.name}</strong><small>{vehicle.slug}</small></span></div></td>
+                    <td><div className="admin-vehicle-cell"><VehicleImage vehicle={vehicle} /><span><strong>{vehicle.name}</strong><small>{vehicle.slug}</small></span></div></td>
                     <td>{categoryLabels[vehicle.category]}</td>
                     <td>{formatINR(vehicle.pricePerDay)}</td>
                     <td><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></td>
@@ -567,7 +558,7 @@ function FleetManagement({
                 ))}</tbody>
               </table>
             </div>
-            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.brand} {vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)}/day</span><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
+            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)}/day</span><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
           </>
         ) : <EmptyState title="No vehicles match" detail="Try changing your search or filters." />}
       </section>
@@ -613,14 +604,23 @@ function VehicleForm({
     const slug = slugify(form.slug);
     const price = Number(form.pricePerDay);
     const seats = Number(form.seats);
-    const horsepower = Number(form.horsepower);
-    const acceleration = Number(form.acceleration);
+    const horsepower = form.horsepower.trim() ? Number(form.horsepower) : undefined;
+    const acceleration = form.acceleration.trim() ? Number(form.acceleration) : undefined;
     if (!form.brand.trim() || !form.model.trim() || !form.name.trim() || !slug || !form.description.trim()) {
       setFormError("Complete all required vehicle details, including a valid slug.");
       return;
     }
-    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(seats) || seats < 1 || !Number.isFinite(horsepower) || horsepower < 1 || !Number.isFinite(acceleration) || acceleration <= 0) {
-      setFormError("Price, seats, horsepower, and acceleration must be valid positive numbers.");
+    if (
+      !Number.isFinite(price) ||
+      price <= 0 ||
+      !Number.isFinite(seats) ||
+      seats < 1 ||
+      (horsepower !== undefined &&
+        (!Number.isFinite(horsepower) || horsepower < 1)) ||
+      (acceleration !== undefined &&
+        (!Number.isFinite(acceleration) || acceleration <= 0))
+    ) {
+      setFormError("Price and seats are required. Optional performance values must be positive numbers.");
       return;
     }
     if (vehicles.some((vehicle) => vehicle.slug === slug && vehicle.id !== id)) {
@@ -638,10 +638,12 @@ function VehicleForm({
       type: categoryLabels[form.category],
       pricePerDay: price,
       seats,
-      rating: existing?.rating ?? 0,
-      horsepower,
-      acceleration,
-      transmission: form.transmission.trim(),
+      ...(existing?.rating !== undefined ? { rating: existing.rating } : {}),
+      ...(horsepower !== undefined ? { horsepower } : {}),
+      ...(acceleration !== undefined ? { acceleration } : {}),
+      ...(form.transmission.trim()
+        ? { transmission: form.transmission.trim() }
+        : {}),
       fuelType: form.fuelType.trim(),
       image: form.image.trim(),
       heroImage: form.image.trim(),
@@ -674,8 +676,12 @@ function VehicleForm({
     type: categoryLabels[form.category],
     pricePerDay: Number(form.pricePerDay) || 0,
     seats: Number(form.seats) || 0,
-    horsepower: Number(form.horsepower) || 0,
-    acceleration: Number(form.acceleration) || 0,
+    ...(form.horsepower.trim()
+      ? { horsepower: Number(form.horsepower) }
+      : {}),
+    ...(form.acceleration.trim()
+      ? { acceleration: Number(form.acceleration) }
+      : {}),
     transmission: form.transmission,
     fuelType: form.fuelType,
     description: form.description,
@@ -701,12 +707,12 @@ function VehicleForm({
               <Field label="Category" required><select onChange={(event) => change("category", event.target.value as VehicleCategory)} value={form.category}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field>
               <Field label="Daily rental price (INR)" required><input min="1" onChange={(event) => change("pricePerDay", event.target.value)} required type="number" value={form.pricePerDay} /></Field>
               <Field label="Seats" required><input min="1" onChange={(event) => change("seats", event.target.value)} required type="number" value={form.seats} /></Field>
-              <Field label="Horsepower" required><input min="1" onChange={(event) => change("horsepower", event.target.value)} required type="number" value={form.horsepower} /></Field>
-              <Field label="0–100 km/h (seconds)" required><input min="0.1" onChange={(event) => change("acceleration", event.target.value)} required step="0.1" type="number" value={form.acceleration} /></Field>
-              <Field label="Transmission" required><input onChange={(event) => change("transmission", event.target.value)} required value={form.transmission} /></Field>
+              <Field label="Horsepower (optional)"><input min="1" onChange={(event) => change("horsepower", event.target.value)} type="number" value={form.horsepower} /></Field>
+              <Field label="0–100 km/h (optional)"><input min="0.1" onChange={(event) => change("acceleration", event.target.value)} step="0.1" type="number" value={form.acceleration} /></Field>
+              <Field label="Transmission (optional)"><input onChange={(event) => change("transmission", event.target.value)} value={form.transmission} /></Field>
               <Field label="Fuel type" required><input onChange={(event) => change("fuelType", event.target.value)} required value={form.fuelType} /></Field>
               <Field className="admin-form-grid__wide" label="Description" required><textarea onChange={(event) => change("description", event.target.value)} required rows={4} value={form.description} /></Field>
-              <Field className="admin-form-grid__wide" label="Image URL or local asset path"><input onChange={(event) => change("image", event.target.value)} placeholder="/images/vehicles/example.jpg" value={form.image} /><small>Optional. Leave blank or use a missing image path to display the category fallback. References only; no files are uploaded.</small></Field>
+              <Field className="admin-form-grid__wide" label="Image URL or local asset path"><input onChange={(event) => change("image", event.target.value)} placeholder="/images/vehicles/example.jpg" value={form.image} /><small>Optional. A neutral photo-unavailable panel is shown if no valid image is available. References only; no files are uploaded.</small></Field>
             </div>
           </section>
           <section className="admin-panel admin-form-section">
@@ -930,16 +936,16 @@ function TestimonialsManagement() {
 }
 
 const galleryAssets = [
-  { path: "/images/vehicles/hero-aston-martin-vantage.png", label: "Hero sport artwork" },
-  { path: "/images/vehicles/hero-luxury-suv.png", label: "Hero SUV artwork" },
-  { path: "/images/vehicles/hero-mercedes-s-class.png", label: "Hero sedan artwork" },
-  { path: "/images/vehicles/hero-porsche-taycan.png", label: "Hero electric artwork" },
-  { path: "/images/vehicles/hero-sport-placeholder.svg", label: "Sport placeholder" },
-  { path: "/images/vehicles/hero-suv-placeholder.svg", label: "SUV placeholder" },
-  { path: "/images/vehicles/hero-electric-placeholder.svg", label: "Electric placeholder" },
+  { path: "/images/brand/epicdrive-logo.svg", label: "EPICDRIVE logo" },
+  { path: "/images/vehicles/kia-carens-clavis.jpg", label: "Kia Clavis" },
+  { path: "/images/vehicles/maruti-ertiga.jpg", label: "Maruti Suzuki Ertiga" },
+  { path: "/images/vehicles/maruti-brezza.jpg", label: "Maruti Suzuki Brezza" },
+  { path: "/images/vehicles/renault-kiger.webp", label: "Renault Kiger" },
+  { path: "/images/vehicles/maruti-dzire.jpg", label: "Maruti Suzuki Dzire" },
+  { path: "/images/vehicles/maruti-celerio.webp", label: "Maruti Suzuki Celerio" },
 ];
 
-const GALLERY_STORAGE_KEY = "veloce-admin-gallery-v1";
+const GALLERY_STORAGE_KEY = "epicdrive-admin-gallery-v2";
 
 function isGalleryAsset(value: unknown): value is { path: string; label: string } {
   return (
@@ -956,10 +962,10 @@ function GalleryManagement() {
   const serialized = useSyncExternalStore(
     (onChange) => {
       window.addEventListener("storage", onChange);
-      window.addEventListener("veloce-admin-gallery", onChange);
+      window.addEventListener("epicdrive-admin-gallery", onChange);
       return () => {
         window.removeEventListener("storage", onChange);
-        window.removeEventListener("veloce-admin-gallery", onChange);
+        window.removeEventListener("epicdrive-admin-gallery", onChange);
       };
     },
     () => {
@@ -980,7 +986,7 @@ function GalleryManagement() {
   function saveAssets(next: typeof galleryAssets) {
     try {
       window.localStorage.setItem(GALLERY_STORAGE_KEY, JSON.stringify(next));
-      window.dispatchEvent(new Event("veloce-admin-gallery"));
+      window.dispatchEvent(new Event("epicdrive-admin-gallery"));
       setMessage("Gallery references saved in this browser. No files were uploaded.");
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Unable to save gallery references.");
@@ -1098,22 +1104,21 @@ function GalleryAssetCard({
 interface LocalSettings {
   brand: string;
   tagline: string;
-  email: string;
   phone: string;
   address: string;
 }
 
-const SETTINGS_KEY = "veloce-admin-settings-v1";
+const SETTINGS_KEY = "epicdrive-admin-settings-v2";
 
 function SettingsManagement() {
   const [message, setMessage] = useState("");
   const serialized = useSyncExternalStore(
     (onChange) => {
       window.addEventListener("storage", onChange);
-      window.addEventListener("veloce-admin-settings", onChange);
+      window.addEventListener("epicdrive-admin-settings", onChange);
       return () => {
         window.removeEventListener("storage", onChange);
-        window.removeEventListener("veloce-admin-settings", onChange);
+        window.removeEventListener("epicdrive-admin-settings", onChange);
       };
     },
     () => {
@@ -1129,7 +1134,6 @@ function SettingsManagement() {
   const initialSettings = parsed.settings ?? {
     brand: siteConfig.brand.name,
     tagline: siteConfig.brand.tagline,
-    email: siteConfig.contact.email,
     phone: siteConfig.contact.phone,
     address: siteConfig.contact.address,
   };
@@ -1162,23 +1166,21 @@ function parseSettings(serialized: string): { settings?: LocalSettings; error?: 
       parsed === null ||
       !("brand" in parsed) ||
       !("tagline" in parsed) ||
-      !("email" in parsed) ||
       !("phone" in parsed) ||
       !("address" in parsed)
     ) {
       return { error: "Saved settings have an invalid format." };
     }
-    const { brand, tagline, email, phone, address } = parsed;
+    const { brand, tagline, phone, address } = parsed;
     if (
       typeof brand !== "string" ||
       typeof tagline !== "string" ||
-      typeof email !== "string" ||
       typeof phone !== "string" ||
       typeof address !== "string"
     ) {
       return { error: "Saved settings have an invalid format." };
     }
-    return { settings: { brand, tagline, email, phone, address } };
+    return { settings: { brand, tagline, phone, address } };
   } catch {
     return { error: "Saved settings are not valid JSON." };
   }
@@ -1197,7 +1199,7 @@ function SettingsEditor({
     event.preventDefault();
     try {
       window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-      window.dispatchEvent(new Event("veloce-admin-settings"));
+      window.dispatchEvent(new Event("epicdrive-admin-settings"));
       onStatus("Settings saved in this browser. Public source configuration has not been changed.");
     } catch (cause) {
       onStatus(cause instanceof Error ? cause.message : "Unable to save local settings.");
@@ -1210,7 +1212,6 @@ function SettingsEditor({
       <div className="admin-form-grid">
         <Field label="Brand name" required><input onChange={(event) => setSettings((value) => ({ ...value, brand: event.target.value }))} required value={settings.brand} /></Field>
         <Field label="Tagline" required><input onChange={(event) => setSettings((value) => ({ ...value, tagline: event.target.value }))} required value={settings.tagline} /></Field>
-        <Field label="Contact email" required><input onChange={(event) => setSettings((value) => ({ ...value, email: event.target.value }))} required type="email" value={settings.email} /></Field>
         <Field label="Contact phone" required><input onChange={(event) => setSettings((value) => ({ ...value, phone: event.target.value }))} required value={settings.phone} /></Field>
         <Field className="admin-form-grid__wide" label="Address" required><input onChange={(event) => setSettings((value) => ({ ...value, address: event.target.value }))} required value={settings.address} /></Field>
       </div>

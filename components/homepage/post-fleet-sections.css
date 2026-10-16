@@ -156,7 +156,8 @@
 }
 
 .journey-rules {
-  padding-block: clamp(5rem, 9vw, 8rem);
+  padding-top: clamp(1.5rem, 3vw, 3rem);
+  padding-bottom: clamp(5rem, 9vw, 8rem);
   border-block: 1px solid rgb(255 255 255 / 7%);
   background:
     radial-gradient(ellipse at 82% 50%, rgb(216 255 79 / 4%), transparent 42%),
@@ -173,7 +174,7 @@
 .journey-rules__visual {
   position: relative;
   min-width: 0;
-  aspect-ratio: 1.16;
+  aspect-ratio: 1.5;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 1.625rem;
@@ -401,7 +402,8 @@
   }
 
   .journey-rules {
-    padding-block: 4.5rem;
+    padding-top: 2rem;
+    padding-bottom: 4.5rem;
   }
 
   .journey-rules__layout {
@@ -410,7 +412,7 @@
   }
 
   .journey-rules__visual {
-    aspect-ratio: 1.15;
+    aspect-ratio: 1.5;
   }
 
   .occasion-card__media {

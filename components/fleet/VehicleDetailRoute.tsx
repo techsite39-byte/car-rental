@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { vehicles as seedVehicles } from "@/data/vehicles";
+import { fleetVehicles as seedVehicles } from "@/data/vehicles";
 import { adminRepositories } from "@/lib/admin-data";
 import { useAdminCollection } from "@/lib/use-admin-collection";
 import { VehicleDetail } from "@/components/fleet/VehicleDetail";

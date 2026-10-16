@@ -50,7 +50,12 @@ export function Footer() {
   }
 
   return (
-    <footer aria-label="Site footer" className="site-footer" ref={footerRef}>
+    <footer
+      aria-label="Site footer"
+      className="site-footer"
+      id="contact"
+      ref={footerRef}
+    >
       <section aria-labelledby="footer-cta-heading" className="footer-cta">
         <div aria-hidden="true" className="footer-cta__car">
           <Image
@@ -58,7 +63,7 @@ export function Footer() {
             fill
             priority
             sizes="(max-width: 700px) 0px, 50vw"
-            src="/images/deals/footer-sports-car.webp"
+            src="/images/vehicles/kia-carens-clavis.jpg"
           />
         </div>
         <div className="site-container footer-cta__inner">
@@ -87,7 +92,7 @@ export function Footer() {
               size="lg"
               variant="secondary"
             >
-              Reserve a vehicle
+              Book Now
               <ArrowUpRight aria-hidden="true" size={17} />
             </Button>
           </div>
@@ -101,19 +106,16 @@ export function Footer() {
             className="footer-brand"
             href={siteConfig.routes.home}
           >
-            <svg
-              aria-hidden="true"
-              className="footer-brand__mark"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M8.25 14.5 12 8.25l3.75 6.25" />
-              <path d="M9.75 12h4.5" />
-            </svg>
-            <span>{siteConfig.brand.name}</span>
+            <Image
+              alt={siteConfig.brand.fullName}
+              className="footer-brand__logo"
+              height={64}
+              src="/images/brand/epicdrive-logo.svg"
+              width={256}
+            />
           </Link>
-          <p>{siteConfig.brand.tagline}</p>
+          <p className="footer-main__tagline">{siteConfig.brand.tagline}</p>
+          <p className="footer-main__location">{siteConfig.contact.address}</p>
         </div>
 
         <div className="footer-main__columns">
@@ -137,10 +139,7 @@ export function Footer() {
 
           <div className="footer-column footer-column--connect" data-footer-reveal>
             <h2>CONNECT</h2>
-            <span className="footer-column__note">DEMO CONTACT DETAILS</span>
-            <a href={`mailto:${siteConfig.contact.email}`}>
-              {siteConfig.contact.email}
-            </a>
+            <span className="footer-column__note">MADURAI · TAMIL NADU</span>
             <a
               href={`tel:${siteConfig.contact.phone.replace(/[^\d+]/g, "")}`}
             >
@@ -150,8 +149,9 @@ export function Footer() {
               <a
                 href={item.href}
                 key={item.label}
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 target="_blank"
+                className="footer-social-link"
               >
                 {item.label}
                 <ArrowUpRight aria-hidden="true" size={13} />
@@ -171,6 +171,7 @@ export function Footer() {
                 {item.label}
               </Link>
             ))}
+            <a href="/images/vehicles/ATTRIBUTION.txt">Image credits</a>
           </nav>
           <button
             aria-label="Back to top"

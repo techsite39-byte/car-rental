@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react";
 import { useState } from "react";
-import type { Vehicle } from "@/data/vehicles";
+import { vehicleCategoryLabels, type Vehicle } from "@/data/vehicles";
 import { formatINR } from "@/lib/currency";
 
 interface VehicleCardProps {
@@ -12,28 +11,12 @@ interface VehicleCardProps {
   featured: boolean;
 }
 
-const fallbackByCategory: Record<Vehicle["category"], string> = {
-  sport: "/images/vehicles/hero-sport-placeholder.svg",
-  suv: "/images/vehicles/hero-suv-placeholder.svg",
-  sedan: "/images/vehicles/hero-sedan-placeholder.svg",
-  electric: "/images/vehicles/hero-electric-placeholder.svg",
-  convertible: "/images/vehicles/hero-sport-placeholder.svg",
-};
-
-const categoryLabels: Record<Vehicle["category"], string> = {
-  sport: "Sport",
-  suv: "SUV",
-  sedan: "Sedan",
-  electric: "Electric",
-  convertible: "Convertible",
-};
-
 export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const imageSrc =
-    imageFailed || !vehicle.imagePlaceholder
-      ? fallbackByCategory[vehicle.category]
-      : vehicle.imagePlaceholder;
+    imageFailed || !vehicle.image
+      ? "/images/vehicles/vehicle-photo-unavailable.svg"
+      : vehicle.image;
 
   return (
     <article
@@ -44,7 +27,11 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
         <div aria-hidden="true" className="vehicle-card__image-atmosphere" />
         <div className="vehicle-card__image-wrap" data-vehicle-image>
           <Image
-            alt={`${vehicle.name}, ${vehicle.type}`}
+            alt={
+              imageSrc !== vehicle.image
+                ? `Photo unavailable for ${vehicle.name}`
+                : `${vehicle.name}, ${vehicle.type}`
+            }
             className="vehicle-card__image"
             fill
             sizes="(max-width: 700px) 100vw, (max-width: 1100px) 50vw, 33vw"
@@ -67,7 +54,7 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
         <div className="vehicle-card__meta">
           <span>{vehicle.brand}</span>
           <span aria-hidden="true" className="vehicle-card__meta-divider" />
-          <span>{categoryLabels[vehicle.category]}</span>
+          <span>{vehicleCategoryLabels[vehicle.category]}</span>
         </div>
 
         <div className="vehicle-card__title-row">
@@ -75,15 +62,6 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
             <h3 className="vehicle-card__title">{vehicle.name}</h3>
             <p className="vehicle-card__type">{vehicle.type}</p>
           </div>
-          {vehicle.rating > 0 ? (
-            <span
-              aria-label={`Rated ${vehicle.rating} out of 5`}
-              className="vehicle-card__rating"
-            >
-              <Star aria-hidden="true" fill="currentColor" size={14} />
-              {vehicle.rating.toFixed(1)}
-            </span>
-          ) : null}
         </div>
 
         <dl className="vehicle-card__specs">
@@ -92,30 +70,26 @@ export function VehicleCard({ vehicle, featured }: VehicleCardProps) {
             <dd>{vehicle.seats}</dd>
           </div>
           <div>
-            <dt>Transmission</dt>
-            <dd>{vehicle.transmission}</dd>
-          </div>
-          <div>
             <dt>Fuel</dt>
             <dd>{vehicle.fuelType}</dd>
-          </div>
-          <div>
-            <dt>Power</dt>
-            <dd>{vehicle.horsepower} hp</dd>
           </div>
         </dl>
 
         <div className="vehicle-card__footer">
           <p className="vehicle-card__price">
-            <span>From</span>
+            <span>Starting at</span>
             <strong>{formatINR(vehicle.pricePerDay)}</strong>
             <span>/ day</span>
           </p>
           <Link
             className="vehicle-card__link"
-            href={`/fleet/${vehicle.slug}`}
+            href={
+              vehicle.available
+                ? `/booking?vehicle=${encodeURIComponent(vehicle.id)}`
+                : `/fleet/${vehicle.slug}`
+            }
           >
-            {vehicle.available ? "Explore vehicle" : "View vehicle"}
+            {vehicle.available ? "Book Now" : "View vehicle"}
             <span aria-hidden="true">↗</span>
           </Link>
         </div>

@@ -6,11 +6,10 @@ interface VehicleSpecsProps {
 
 export function VehicleSpecs({ vehicle }: VehicleSpecsProps) {
   const specs = [
-    { label: "0–100 KM/H", value: `${vehicle.acceleration.toFixed(1)}s` },
-    { label: "POWER", value: `${vehicle.horsepower} HP` },
     { label: "SEATS", value: String(vehicle.seats) },
-    { label: "TRANSMISSION", value: vehicle.transmission },
     { label: "FUEL TYPE", value: vehicle.fuelType },
+    { label: "CATEGORY", value: vehicle.type },
+    { label: "STARTING PRICE / DAY", value: `₹${vehicle.pricePerDay.toLocaleString("en-IN")}` },
   ];
 
   return (

@@ -11,6 +11,7 @@ interface ExperienceCardProps {
   imageSrc?: string;
   fleetVehicles?: Vehicle[];
   fleetImageSources?: Record<string, string>;
+  vehicleCount?: number;
 }
 
 const cardContent = {
@@ -35,7 +36,7 @@ const cardContent = {
         comfort zone.
       </>
     ),
-    link: "Book now",
+    link: "Book Now",
     href: "/booking",
   },
   fleet: {
@@ -128,8 +129,13 @@ export function ExperienceCard({
   imageSrc,
   fleetVehicles = [],
   fleetImageSources = {},
+  vehicleCount = fleetVehicles.length,
 }: ExperienceCardProps) {
   const content = cardContent[variant];
+  const href =
+    variant === "convertible"
+      ? `/booking?vehicle=${encodeURIComponent(vehicle.id)}`
+      : content.href;
 
   return (
     <article
@@ -154,7 +160,7 @@ export function ExperienceCard({
             <ConvertibleArtwork />
           </div>
         ) : (
-          <div aria-label="A selection of VÉLOCE vehicles" className="journey-fleet-artwork">
+          <div aria-label="A selection of EPICDRIVE vehicles" className="journey-fleet-artwork">
             {fleetVehicles.map((fleetVehicle, index) => {
               const src =
                 fleetImageSources[fleetVehicle.id] ??
@@ -184,12 +190,12 @@ export function ExperienceCard({
         {variant === "fleet" ? (
           <>
             <h3
-              aria-label="4,516"
+              aria-label={`${vehicleCount} vehicles`}
               className="journey-card__count"
               id={`journey-${variant}-heading`}
             >
               <span aria-live="off" data-journey-count>
-                4,516
+                {vehicleCount}
               </span>
             </h3>
             <p className="journey-card__support">
@@ -216,7 +222,7 @@ export function ExperienceCard({
           </>
         )}
 
-        <Link className="journey-card__link" href={content.href}>
+        <Link className="journey-card__link" href={href}>
           {content.link}
           <span aria-hidden="true">↗</span>
         </Link>

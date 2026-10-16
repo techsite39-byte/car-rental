@@ -174,7 +174,7 @@ export function VehicleBookingCard({ vehicle }: VehicleBookingCardProps) {
           ) : null}
 
           <button className="vehicle-booking-card__submit" type="submit">
-            Reserve {vehicle.name}
+            Book Now
             <span aria-hidden="true">↗</span>
           </button>
           <p className="vehicle-booking-card__note">
@@ -188,7 +188,7 @@ export function VehicleBookingCard({ vehicle }: VehicleBookingCardProps) {
           <p>
             Contact our concierge for availability details for this vehicle.
           </p>
-          <Link href={`mailto:${siteConfig.contact.email}`}>
+          <Link href={siteConfig.contact.whatsapp} target="_blank" rel="noreferrer">
             Contact us <span aria-hidden="true">↗</span>
           </Link>
         </div>

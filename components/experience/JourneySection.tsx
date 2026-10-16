@@ -201,6 +201,7 @@ export function JourneySection() {
               fleetImageSources={journeyImages.fleet}
               futureImage={journeyImages.fleet["atlas-x7"]}
               vehicle={featuredVehicle}
+              vehicleCount={fleetCount}
               variant="fleet"
             />
           </div>

@@ -5,20 +5,21 @@ import type { FleetCategory } from "@/data/vehicles";
 interface FleetFiltersProps {
   selectedCategory: FleetCategory;
   onCategoryChange: (category: FleetCategory) => void;
+  categories: { value: FleetCategory; label: string }[];
 }
 
-const categories: { value: FleetCategory; label: string }[] = [
+export const fleetFilterCategories: FleetFiltersProps["categories"] = [
   { value: "all", label: "All" },
-  { value: "sport", label: "Sport" },
+  { value: "mpv", label: "MPV" },
   { value: "suv", label: "SUV" },
   { value: "sedan", label: "Sedan" },
-  { value: "electric", label: "Electric" },
-  { value: "convertible", label: "Convertible" },
+  { value: "hatchback", label: "Hatchback" },
 ];
 
 export function FleetFilters({
   selectedCategory,
   onCategoryChange,
+  categories,
 }: FleetFiltersProps) {
   return (
     <div

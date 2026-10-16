@@ -444,28 +444,69 @@ export function useFleetCinematicAnimation() {
 
     const scrollDistance = window.innerHeight * (isMobile ? 2.8 : 3.6);
 
-    const ctxGsap = gsap.context(() => {
-      const trigger = ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: () => `+=${scrollDistance}`,
-        pin: section,
-        pinSpacing: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        onRefresh: (self) => {
-          cachedStart = self.start;
-          cachedDistance = Math.max(1, self.end - self.start);
-          if (!ticking && !disposed) {
-            ticking = true;
-            rafId = requestAnimationFrame(updateCinematic);
-          }
-        },
-      });
+    let ctxGsap: gsap.Context | undefined;
+    let layoutObserver: MutationObserver | undefined;
 
-      cachedStart = trigger.start;
-      cachedDistance = Math.max(1, trigger.end - trigger.start);
-    }, section);
+    const createTrigger = () => {
+      if (ctxGsap || disposed) return;
+
+      ctxGsap = gsap.context(() => {
+        const trigger = ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: () => `+=${scrollDistance}`,
+          pin: section,
+          pinSpacing: true,
+          anticipatePin: 1,
+          invalidateOnRefresh: true,
+          onRefresh: (self) => {
+            cachedStart = self.start;
+            cachedDistance = Math.max(1, self.end - self.start);
+            if (!ticking && !disposed) {
+              ticking = true;
+              rafId = requestAnimationFrame(updateCinematic);
+            }
+          },
+        });
+
+        cachedStart = trigger.start;
+        cachedDistance = Math.max(1, trigger.end - trigger.start);
+      }, section);
+
+      if (!ticking && !disposed) {
+        ticking = true;
+        rafId = requestAnimationFrame(updateCinematic);
+      }
+    };
+
+    const precedingPinnedSections = Array.from(
+      section.parentElement?.querySelectorAll<HTMLElement>(
+        ".frame-sequence, .section2-sequence, .open-road-steps",
+      ) ?? [],
+    ).filter(
+      (candidate) =>
+        candidate.compareDocumentPosition(section) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const arePrecedingSectionsPinned = () =>
+      precedingPinnedSections.every((candidate) =>
+        candidate.parentElement?.classList.contains("pin-spacer"),
+      );
+
+    if (
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      arePrecedingSectionsPinned()
+    ) {
+      createTrigger();
+    } else if (section.parentElement) {
+      layoutObserver = new MutationObserver(() => {
+        if (!arePrecedingSectionsPinned()) return;
+
+        layoutObserver?.disconnect();
+        createTrigger();
+      });
+      layoutObserver.observe(section.parentElement, { childList: true });
+    }
 
     updateCinematic();
 
@@ -497,7 +538,8 @@ export function useFleetCinematicAnimation() {
       window.removeEventListener("orientationchange", handleResize);
       resizeObserver.disconnect();
 
-      ctxGsap.revert();
+      layoutObserver?.disconnect();
+      ctxGsap?.revert();
 
       for (const img of inFlight.values()) {
         img.src = "";

@@ -4,18 +4,14 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 const locations = [
-  "New York",
-  "Los Angeles",
-  "San Francisco",
-  "Miami",
-  "Chicago",
+  "Madurai",
 ];
 
 interface BookingBarProps {
-  vehicleSlug: string;
+  vehicleId: string;
 }
 
-export function BookingBar({ vehicleSlug }: BookingBarProps) {
+export function BookingBar({ vehicleId }: BookingBarProps) {
   const router = useRouter();
   const [driver, setDriver] = useState<"with" | "without">("without");
   const [isRoundTrip, setIsRoundTrip] = useState(true);
@@ -38,7 +34,7 @@ export function BookingBar({ vehicleSlug }: BookingBarProps) {
 
     query.set("driver", driver);
     query.set("roundTrip", String(isRoundTrip));
-    query.set("vehicle", vehicleSlug);
+    query.set("vehicle", vehicleId);
     router.push(`/booking?${query.toString()}`);
   }
 
@@ -146,7 +142,7 @@ export function BookingBar({ vehicleSlug }: BookingBarProps) {
             className="button button--primary button--lg booking-bar__submit"
             type="submit"
           >
-            Book now
+            Book Now
             <ArrowUpRight aria-hidden="true" size={16} />
           </button>
         </div>
@@ -154,7 +150,7 @@ export function BookingBar({ vehicleSlug }: BookingBarProps) {
 
       <Link
         className="booking-mobile"
-        href={`/booking?vehicle=${encodeURIComponent(vehicleSlug)}`}
+        href={`/booking?vehicle=${encodeURIComponent(vehicleId)}`}
       >
         <span>
           <strong>Ready when you are</strong>

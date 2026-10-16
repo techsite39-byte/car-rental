@@ -6,22 +6,27 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FleetFilters } from "@/components/fleet/FleetFilters";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
-import { vehicles as seedVehicles, type FleetCategory } from "@/data/vehicles";
-import { adminRepositories } from "@/lib/admin-data";
-import { useAdminCollection } from "@/lib/use-admin-collection";
+import {
+  vehicles,
+  type FleetCategory,
+} from "@/data/vehicles";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const HOME_VEHICLE_LIMIT = 6;
+const showcaseFilterCategories: { value: FleetCategory; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "sport", label: "Sport" },
+  { value: "suv", label: "SUV" },
+  { value: "sedan", label: "Sedan" },
+  { value: "electric", label: "Electric" },
+  { value: "convertible", label: "Convertible" },
+];
 
 export function FleetSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const previousCategory = useRef<FleetCategory>("all");
   const [selectedCategory, setSelectedCategory] = useState<FleetCategory>("all");
-  const { items: vehicles } = useAdminCollection(
-    adminRepositories.vehicles,
-    seedVehicles,
-  );
 
   const visibleVehicles = useMemo(
     () =>
@@ -32,7 +37,7 @@ export function FleetSection() {
             vehicle.category === selectedCategory,
         )
         .slice(0, HOME_VEHICLE_LIMIT),
-    [selectedCategory, vehicles],
+    [selectedCategory],
   );
 
   useEffect(() => {
@@ -186,8 +191,8 @@ export function FleetSection() {
           </div>
           <div className="fleet-section__intro-block">
             <p className="fleet-section__intro" data-fleet-intro>
-              From refined sedans to performance-focused machines, discover a
-              vehicle designed for every kind of journey.
+              Explore performance cars, executive sedans, electric drives, and
+              luxury SUVs for your next journey.
             </p>
             <Link
               className="fleet-section__view-all"
@@ -202,6 +207,7 @@ export function FleetSection() {
 
         <div data-fleet-filters>
           <FleetFilters
+            categories={showcaseFilterCategories}
             onCategoryChange={setSelectedCategory}
             selectedCategory={selectedCategory}
           />

@@ -1,16 +1,31 @@
+import fleetVehicleRecords from "./vehicles.json";
+import originalVehicleRecords from "./original-vehicles.json";
+
 export type VehicleCategory =
   | "sport"
   | "suv"
   | "sedan"
   | "electric"
-  | "convertible";
+  | "convertible"
+  | "mpv"
+  | "hatchback";
 
 export type FleetCategory = "all" | VehicleCategory;
-
-export type HeroCategory = Extract<
+export type ShowcaseCategory = Extract<
   VehicleCategory,
-  "sport" | "suv" | "sedan" | "electric"
+  "sport" | "suv" | "sedan" | "electric" | "convertible"
 >;
+export type HeroCategory = Exclude<ShowcaseCategory, "convertible">;
+
+export const vehicleCategoryLabels: Record<VehicleCategory, string> = {
+  sport: "Sport",
+  suv: "SUV",
+  sedan: "Sedan",
+  electric: "Electric",
+  convertible: "Convertible",
+  mpv: "MPV",
+  hatchback: "Hatchback",
+};
 
 export interface HeroVehiclePresentation {
   brand: string;
@@ -73,10 +88,10 @@ export interface Vehicle {
   type: string;
   pricePerDay: number;
   seats: number;
-  rating: number;
-  horsepower: number;
-  acceleration: number;
-  transmission: string;
+  rating?: number;
+  horsepower?: number;
+  acceleration?: number;
+  transmission?: string;
   fuelType: string;
   image: string;
   heroImage?: string;
@@ -90,126 +105,53 @@ export type HeroVehicle = Omit<Vehicle, "category"> & {
   category: HeroCategory;
 };
 
-const realisticVehicleArt = {
-  suv:
-    "https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&w=1400&q=80",
-  electric:
-    "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=1400&q=80",
-  sport:
-    "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1400&q=80",
-  sedan:
-    "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1400&q=80",
-  convertible:
-    "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?auto=format&fit=crop&w=1400&q=80",
-} as const;
+function isShowcaseCategory(value: string): value is ShowcaseCategory {
+  return (
+    value === "sport" ||
+    value === "suv" ||
+    value === "sedan" ||
+    value === "electric" ||
+    value === "convertible"
+  );
+}
 
-export const vehicles: Vehicle[] = [
-  {
-    id: "atlas-x7",
-    slug: "atlas-x7",
-    name: "Atlas X7",
-    brand: "Northstar",
-    category: "suv",
-    type: "Luxury SUV",
-    pricePerDay: 420,
-    seats: 5,
-    rating: 4.9,
-    horsepower: 420,
-    acceleration: 5.2,
-    transmission: "Automatic",
-    fuelType: "Hybrid",
-    image: realisticVehicleArt.suv,
-    heroImage: realisticVehicleArt.suv,
-    imagePlaceholder: realisticVehicleArt.suv,
-    description:
-      "A composed grand tourer built for long horizons and effortless arrivals.",
-    available: true,
-  },
-  {
-    id: "aurora-s",
-    slug: "aurora-s",
-    name: "Aurora S",
-    brand: "Aurelia",
-    category: "electric",
-    type: "Electric sedan",
-    pricePerDay: 390,
-    seats: 5,
-    rating: 4.8,
-    horsepower: 510,
-    acceleration: 3.9,
-    transmission: "Single-speed",
-    fuelType: "Electric",
-    image: realisticVehicleArt.electric,
-    heroImage: realisticVehicleArt.electric,
-    imagePlaceholder: realisticVehicleArt.electric,
-    description:
-      "Silent electric performance wrapped in considered, contemporary comfort.",
-    available: true,
-  },
-  {
-    id: "vantage-gt",
-    slug: "vantage-gt",
-    name: "Vantage GT",
-    brand: "Caldera",
-    category: "sport",
-    type: "Grand tourer",
-    pricePerDay: 680,
-    seats: 2,
-    rating: 5,
-    horsepower: 610,
-    acceleration: 3.4,
-    transmission: "Dual-clutch",
-    fuelType: "Petrol",
-    image: realisticVehicleArt.sport,
-    heroImage: realisticVehicleArt.sport,
-    imagePlaceholder: realisticVehicleArt.sport,
-    description:
-      "A focused, sculptural coupe with a naturally engaging road presence.",
-    available: true,
-  },
-  {
-    id: "monarch-l",
-    slug: "monarch-l",
-    name: "Monarch L",
-    brand: "Belmont",
-    category: "sedan",
-    type: "Executive sedan",
-    pricePerDay: 510,
-    seats: 5,
-    rating: 4.9,
-    horsepower: 460,
-    acceleration: 4.6,
-    transmission: "Automatic",
-    fuelType: "Hybrid",
-    image: realisticVehicleArt.sedan,
-    heroImage: realisticVehicleArt.sedan,
-    imagePlaceholder: realisticVehicleArt.sedan,
-    description:
-      "A spacious executive saloon that makes every arrival feel unhurried.",
-    available: false,
-  },
-  {
-    id: "velocity-rs",
-    slug: "velocity-rs",
-    name: "Velocity RS",
-    brand: "Solstice",
-    category: "convertible",
-    type: "Performance convertible",
-    pricePerDay: 590,
-    seats: 2,
-    rating: 4.9,
-    horsepower: 540,
-    acceleration: 3.8,
-    transmission: "Dual-clutch",
-    fuelType: "Petrol",
-    image: realisticVehicleArt.convertible,
-    heroImage: realisticVehicleArt.convertible,
-    imagePlaceholder: realisticVehicleArt.convertible,
-    description:
-      "Open-air performance designed for bright mornings and winding roads.",
-    available: true,
-  },
-];
+function isFleetCategory(value: string): value is Extract<
+  VehicleCategory,
+  "mpv" | "suv" | "sedan" | "hatchback"
+> {
+  return (
+    value === "mpv" ||
+    value === "suv" ||
+    value === "sedan" ||
+    value === "hatchback"
+  );
+}
+
+const originalVehicles: Vehicle[] = originalVehicleRecords.map((vehicle) => {
+  if (!isShowcaseCategory(vehicle.category)) {
+    throw new Error(`Unknown original vehicle category for "${vehicle.id}".`);
+  }
+  return {
+    ...vehicle,
+    category: vehicle.category,
+    heroImage: vehicle.image,
+    imagePlaceholder: vehicle.image,
+  };
+});
+
+export const vehicles = originalVehicles;
+
+export const fleetVehicles: Vehicle[] = fleetVehicleRecords.map((vehicle) => {
+  if (!isFleetCategory(vehicle.category)) {
+    throw new Error(`Unknown fleet category for "${vehicle.id}".`);
+  }
+  return {
+    ...vehicle,
+    category: vehicle.category,
+    heroImage: vehicle.image,
+    imagePlaceholder: vehicle.image,
+  };
+});
 
 export const heroCategoryVehicleIds: Record<HeroCategory, string> = {
   sport: "vantage-gt",
@@ -222,7 +164,7 @@ export function getHeroVehicle(category: HeroCategory): HeroVehicle {
   const vehicleId = heroCategoryVehicleIds[category];
   const vehicle = vehicles.find(({ id }) => id === vehicleId);
 
-  if (!vehicle || !isHeroVehicleForCategory(vehicle, category)) {
+  if (!vehicle || !isHeroVehicle(vehicle, category)) {
     throw new Error(
       `Hero category "${category}" references an invalid vehicle "${vehicleId}".`,
     );
@@ -231,9 +173,11 @@ export function getHeroVehicle(category: HeroCategory): HeroVehicle {
   return vehicle;
 }
 
-function isHeroVehicleForCategory(
+function isHeroVehicle(
   vehicle: Vehicle,
   category: HeroCategory,
 ): vehicle is HeroVehicle {
   return vehicle.category === category;
 }
+
+export const bookingVehicles = [...vehicles, ...fleetVehicles];

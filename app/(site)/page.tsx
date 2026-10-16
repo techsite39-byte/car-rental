@@ -1,5 +1,8 @@
 import { FrameSequenceHero } from "@/components/hero/FrameSequenceHero";
 import { Section2ScrollHero } from "@/components/hero/Section2ScrollHero";
+import { CustomerTestimonials } from "@/components/homepage/CustomerTestimonials";
+import { StatisticsSection } from "@/components/homepage/StatisticsSection";
+import { JourneyRulesSection } from "@/components/homepage/PostFleetSections";
 import { OpenRoadSteps } from "@/components/homepage/OpenRoadSteps";
 import { Hero } from "@/components/hero/Hero";
 import { DealsSection } from "@/components/deals/DealsSection";
@@ -13,12 +16,15 @@ export default function HomePage() {
     <main className="home-page">
       <FrameSequenceHero />
       <Section2ScrollHero />
+      <StatisticsSection />
       <OpenRoadSteps />
       <Hero />
-      <DealsSection />
-      <JourneySection />
       <FleetSection />
       <FleetCinematicSection />
+      <JourneyRulesSection />
+      <CustomerTestimonials />
+      <DealsSection />
+      <JourneySection />
       <PostFleetSections />
     </main>
   );

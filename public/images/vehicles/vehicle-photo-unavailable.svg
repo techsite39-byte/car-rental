@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-labelledby="title">
+  <title id="title">Vehicle photo unavailable</title>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#191919"/>
+      <stop offset="1" stop-color="#080808"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#e50914" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#e50914" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="650" fill="url(#bg)"/>
+  <ellipse cx="600" cy="500" fill="url(#glow)" rx="430" ry="170"/>
+  <path d="M460 293h280M460 338h190" stroke="#e50914" stroke-linecap="round" stroke-opacity=".72" stroke-width="6"/>
+  <text x="600" y="411" fill="#f5f5f5" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" letter-spacing="7" text-anchor="middle">PHOTO COMING SOON</text>
+</svg>

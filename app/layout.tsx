@@ -4,8 +4,9 @@ import { siteConfig } from "@/data/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: `${siteConfig.brand.name} — Premium Car Rental`,
-  description: "Premium vehicles for exceptional journeys.",
+  title: `${siteConfig.brand.fullName} — ${siteConfig.brand.tagline}`,
+  description:
+    "Self-drive car rentals in Madurai. Choose from the EPICDRIVE fleet and plan your journey.",
 };
 
 export const viewport: Viewport = {

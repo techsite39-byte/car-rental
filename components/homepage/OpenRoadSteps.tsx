@@ -12,19 +12,19 @@ const STEPS = [
     number: "01",
     title: "Choose your car",
     description:
-      "Filter by class, seats or price and see the exact car you’ll get.",
+      "Compare the listed cars by category, seating and fuel type.",
   },
   {
     number: "02",
-    title: "Book in a minute",
+    title: "Send a booking request",
     description:
-      "Pick dates and a place. Pay once — insurance and mileage included.",
+      "Share your preferred locations, dates, times and contact details.",
   },
   {
     number: "03",
-    title: "Drive away",
+    title: "Confirm your journey",
     description:
-      "We deliver to your door or hotel. Unlock it from the app and go.",
+      "Our team will follow up to confirm availability, pickup arrangements and final details.",
   },
 ] as const;
 
@@ -212,8 +212,8 @@ export function OpenRoadSteps() {
             Three steps to the open road
           </h2>
           <p>
-            No counters, no paperwork, no waiting. Most renters are driving
-            within the hour.
+            Choose a vehicle and share a few trip details. Our Madurai team will
+            follow up to confirm the arrangement.
           </p>
         </header>
 

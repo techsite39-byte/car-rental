@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms — VÉLOCE",
-  description: "Terms page placeholder for the VÉLOCE frontend demo.",
+  title: "Terms — EPICDRIVE",
+  description: "Terms page placeholder for EPICDRIVE Car Rentals.",
 };
 
 export default function TermsPage() {

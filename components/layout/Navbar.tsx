@@ -2,17 +2,60 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { siteConfig } from "@/data/site";
 
 export function Navbar() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const menuToggleRef = useRef<HTMLButtonElement>(null);
   const menuCloseRef = useRef<HTMLButtonElement>(null);
   const mobileNavigationRef = useRef<HTMLDivElement>(null);
+  const previousBodyOverflowRef = useRef("");
+  const pendingAnchorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const hash = pendingAnchorRef.current;
+    if (pathname !== siteConfig.routes.home || !hash) return;
+
+    let frame = 0;
+    const startedAt = performance.now();
+    const scrollToAnchor = () => {
+      const sequences = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          ".frame-sequence, .section2-sequence",
+        ),
+      );
+      const pinsReady =
+        sequences.length === 2 &&
+        sequences.every((sequence) =>
+          sequence.parentElement?.classList.contains("pin-spacer"),
+        );
+
+      if (!pinsReady && performance.now() - startedAt < 5000) {
+        frame = window.requestAnimationFrame(scrollToAnchor);
+        return;
+      }
+
+      const target = document.querySelector<HTMLElement>(hash);
+      if (target) {
+        target.scrollIntoView({
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      }
+      pendingAnchorRef.current = null;
+    };
+
+    frame = window.requestAnimationFrame(scrollToAnchor);
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, prefersReducedMotion]);
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 12);
@@ -28,6 +71,7 @@ export function Navbar() {
 
     const menuToggle = menuToggleRef.current;
     const previousOverflow = document.body.style.overflow;
+    previousBodyOverflowRef.current = previousOverflow;
     document.body.style.overflow = "hidden";
     menuCloseRef.current?.focus();
 
@@ -67,7 +111,42 @@ export function Navbar() {
     };
   }, [isMenuOpen]);
 
-  const closeMenu = () => setIsMenuOpen(false);
+  const closeMenu = () => {
+    if (isMenuOpen) {
+      document.body.style.overflow = previousBodyOverflowRef.current;
+    }
+    setIsMenuOpen(false);
+  };
+
+  const navigateToAnchor = (
+    event: MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    closeMenu();
+    const destination = new URL(href, window.location.href);
+    if (
+      destination.pathname !== siteConfig.routes.home ||
+      !destination.hash ||
+      pathname === siteConfig.routes.home
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    pendingAnchorRef.current = destination.hash;
+    router.push(destination.pathname);
+  };
 
   return (
     <header
@@ -80,22 +159,24 @@ export function Navbar() {
           href={siteConfig.routes.home}
           onClick={closeMenu}
         >
-          <svg
-            aria-hidden="true"
-            className="navbar__mark"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M8.25 14.5 12 8.25l3.75 6.25" />
-            <path d="M9.75 12h4.5" />
-          </svg>
-          <span>{siteConfig.brand.name}</span>
+          <Image
+            alt={siteConfig.brand.fullName}
+            className="navbar__logo"
+            height={64}
+            priority
+            src="/images/brand/epicdrive-logo.svg"
+            width={256}
+          />
         </Link>
 
         <nav aria-label="Main navigation" className="navbar__links">
           {siteConfig.navigation.map((item) => (
-            <Link className="navbar__link" href={item.href} key={item.label}>
+            <Link
+              className="navbar__link"
+              href={item.href}
+              key={item.label}
+              onClick={(event) => navigateToAnchor(event, item.href)}
+            >
               {item.label}
             </Link>
           ))}
@@ -173,7 +254,7 @@ export function Navbar() {
                   className="navbar-mobile__link"
                   href={item.href}
                   key={item.label}
-                  onClick={closeMenu}
+                  onClick={(event) => navigateToAnchor(event, item.href)}
                 >
                   {item.label}
                 </Link>

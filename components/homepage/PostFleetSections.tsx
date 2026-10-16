@@ -7,13 +7,17 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { vehicles, type FleetCategory, type Vehicle } from "@/data/vehicles";
+import {
+  vehicles,
+  type ShowcaseCategory,
+  type Vehicle,
+} from "@/data/vehicles";
 import "./post-fleet-sections.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface DrivingExperience {
-  category: FleetCategory;
+  category: ShowcaseCategory;
   title: string;
   description: string;
   action: string;
@@ -21,7 +25,7 @@ interface DrivingExperience {
   imageAlt: string;
 }
 
-function getVehicle(category: FleetCategory): Vehicle {
+function getVehicle(category: ShowcaseCategory): Vehicle {
   const vehicle = vehicles.find((candidate) => candidate.category === category);
   if (!vehicle) {
     throw new Error(`Driving experience has no vehicle for "${category}".`);
@@ -98,14 +102,27 @@ const occasionCards = [
       "Explore vehicles for celebrations and memorable occasions.",
     action: "Discover Your Options",
     image: getVehicle("convertible"),
-    imageAlt: "Elegant convertible for a memorable occasion",
+    imageAlt: "Performance convertible for a special occasion",
   },
 ];
 
-function getFallbackImage(src: string): string {
-  return (
-    vehicles.find((vehicle) => vehicle.image !== src)?.image ?? vehicles[0].image
-  );
+function fleetCategoryFor(category: ShowcaseCategory) {
+  switch (category) {
+    case "sport":
+      return "suv";
+    case "suv":
+      return "suv";
+    case "sedan":
+      return "sedan";
+    case "electric":
+      return "hatchback";
+    case "convertible":
+      return "mpv";
+  }
+}
+
+function getFallbackImage(): string {
+  return "/images/vehicles/vehicle-photo-unavailable.svg";
 }
 
 function EditorialImage({
@@ -124,7 +141,7 @@ function EditorialImage({
 
   return (
     <Image
-      alt={alt}
+      alt={imageSrc === fallback ? "Vehicle photo unavailable" : alt}
       className="post-fleet-image"
       fill
       onError={() => {
@@ -136,6 +153,124 @@ function EditorialImage({
       sizes={sizes}
       src={imageSrc}
     />
+  );
+}
+
+export function JourneyRulesSection() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const journeyVehicle = getVehicle("suv");
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        section.querySelectorAll<HTMLElement>("[data-post-fleet-reveal]"),
+        { autoAlpha: 0, y: 24 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.68,
+          stagger: 0.09,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 82%",
+            once: true,
+          },
+        },
+      );
+
+      gsap.fromTo(
+        section.querySelectorAll<HTMLElement>("[data-post-fleet-image-motion]"),
+        { scale: 1.045 },
+        {
+          scale: 1,
+          duration: 1.1,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 82%",
+            once: true,
+          },
+        },
+      );
+    }, section);
+
+    return () => context.revert();
+  }, []);
+
+  return (
+    <section
+      aria-labelledby="journey-rules-heading"
+      className="journey-rules"
+      data-post-fleet-section
+      ref={sectionRef}
+    >
+      <div className="site-container journey-rules__layout">
+        <div
+          aria-label="Premium vehicle for a comfortable journey"
+          className="journey-rules__visual"
+          data-post-fleet-reveal
+        >
+          <div
+            className="journey-rules__image-motion post-fleet-image-motion"
+            data-post-fleet-image-motion
+          >
+            <EditorialImage
+              alt="Premium SUV photographed for a considered road journey"
+              fallback={getFallbackImage()}
+              sizes="(max-width: 700px) 90vw, 52vw"
+              src={journeyVehicle.image}
+            />
+          </div>
+          <span aria-hidden="true" className="journey-rules__image-label">
+            EPICDRIVE / YOUR NEXT JOURNEY
+          </span>
+        </div>
+        <div className="journey-rules__content" data-post-fleet-reveal>
+          <p className="post-fleet-eyebrow">THE EPICDRIVE EXPERIENCE</p>
+          <h2 id="journey-rules-heading">
+            More than a car. A better way to travel.
+          </h2>
+          <p className="journey-rules__description">
+            Whether it’s a business meeting, a weekend escape, or a special
+            occasion, experience every journey with comfort, confidence, and
+            complete freedom.
+          </p>
+          <ul className="journey-rules__features">
+            <li>
+              <span aria-hidden="true">01</span>
+              <div>
+                <h3>Premium Selection</h3>
+                <p>Vehicles selected for comfort, performance, and style.</p>
+              </div>
+            </li>
+            <li>
+              <span aria-hidden="true">02</span>
+              <div>
+                <h3>Flexible Journeys</h3>
+                <p>Find a vehicle that fits your plans.</p>
+              </div>
+            </li>
+            <li>
+              <span aria-hidden="true">03</span>
+              <div>
+                <h3>Effortless Booking</h3>
+                <p>Explore available options and reserve with ease.</p>
+              </div>
+            </li>
+          </ul>
+          <Button href="/fleet" size="lg" variant="primary">
+            Explore Our Fleet
+            <ArrowUpRight aria-hidden="true" size={17} />
+          </Button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -189,11 +324,6 @@ export function PostFleetSections() {
     return () => context.revert();
   }, []);
 
-  const journeyVehicle = {
-    ...getVehicle("suv"),
-    image: "/images/vehicles/hero-luxury-suv.jpg",
-  };
-
   return (
     <div className="post-fleet-sections" ref={sectionsRef}>
       <section
@@ -215,7 +345,7 @@ export function PostFleetSections() {
                 aria-label={`${experience.action}: ${experience.title}`}
                 className="driving-experience-card"
                 data-post-fleet-reveal
-                href={`/fleet?category=${experience.category}`}
+                href={`/fleet?category=${fleetCategoryFor(experience.category)}`}
                 key={experience.category}
               >
                 <div className="driving-experience-card__media">
@@ -225,7 +355,7 @@ export function PostFleetSections() {
                   >
                     <EditorialImage
                       alt={experience.imageAlt}
-                      fallback={getFallbackImage(experience.image.image)}
+                      fallback={getFallbackImage()}
                       sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 25vw"
                       src={experience.image.image}
                     />
@@ -251,73 +381,6 @@ export function PostFleetSections() {
       </section>
 
       <section
-        aria-labelledby="journey-rules-heading"
-        className="journey-rules"
-        data-post-fleet-section
-      >
-        <div className="site-container journey-rules__layout">
-          <div
-            aria-label="Premium vehicle for a comfortable journey"
-            className="journey-rules__visual"
-            data-post-fleet-reveal
-          >
-            <div
-              className="journey-rules__image-motion post-fleet-image-motion"
-              data-post-fleet-image-motion
-            >
-              <EditorialImage
-                alt="Premium SUV photographed for a considered road journey"
-                fallback={getFallbackImage(journeyVehicle.image)}
-                sizes="(max-width: 700px) 90vw, 52vw"
-                src={journeyVehicle.image}
-              />
-            </div>
-            <span aria-hidden="true" className="journey-rules__image-label">
-              VÉLOCE / YOUR NEXT JOURNEY
-            </span>
-          </div>
-          <div className="journey-rules__content" data-post-fleet-reveal>
-            <p className="post-fleet-eyebrow">THE VÉLOCE EXPERIENCE</p>
-            <h2 id="journey-rules-heading">
-              More than a car. A better way to travel.
-            </h2>
-            <p className="journey-rules__description">
-              Whether it’s a business meeting, a weekend escape, or a special
-              occasion, experience every journey with comfort, confidence, and
-              complete freedom.
-            </p>
-            <ul className="journey-rules__features">
-              <li>
-                <span aria-hidden="true">01</span>
-                <div>
-                  <h3>Premium Selection</h3>
-                  <p>Vehicles selected for comfort, performance, and style.</p>
-                </div>
-              </li>
-              <li>
-                <span aria-hidden="true">02</span>
-                <div>
-                  <h3>Flexible Journeys</h3>
-                  <p>Find a vehicle that fits your plans.</p>
-                </div>
-              </li>
-              <li>
-                <span aria-hidden="true">03</span>
-                <div>
-                  <h3>Effortless Booking</h3>
-                  <p>Explore available options and reserve with ease.</p>
-                </div>
-              </li>
-            </ul>
-            <Button href="/fleet" size="lg" variant="primary">
-              Explore Our Fleet
-              <ArrowUpRight aria-hidden="true" size={17} />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section
         aria-labelledby="occasion-heading"
         className="occasion-section"
         data-post-fleet-section
@@ -336,7 +399,7 @@ export function PostFleetSections() {
                 aria-label={`${card.action}: ${card.eyebrow}`}
                 className="occasion-card"
                 data-post-fleet-reveal
-                href={`/fleet?category=${card.category}`}
+                href={`/fleet?category=${fleetCategoryFor(card.category)}`}
                 key={card.eyebrow}
               >
                 <div className="occasion-card__media">
@@ -346,7 +409,7 @@ export function PostFleetSections() {
                   >
                     <EditorialImage
                       alt={card.imageAlt}
-                      fallback={getFallbackImage(card.image.image)}
+                      fallback={getFallbackImage()}
                       sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 33vw"
                       src={card.image.image}
                     />

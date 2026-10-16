@@ -2,26 +2,21 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FleetFilters } from "@/components/fleet/FleetFilters";
+import {
+  FleetFilters,
+  fleetFilterCategories,
+} from "@/components/fleet/FleetFilters";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
-import { vehicles as seedVehicles, type FleetCategory } from "@/data/vehicles";
+import { fleetVehicles as seedVehicles } from "@/data/vehicles";
 import { adminRepositories } from "@/lib/admin-data";
 import { useAdminCollection } from "@/lib/use-admin-collection";
-
-const categories: FleetCategory[] = [
-  "all",
-  "sport",
-  "suv",
-  "sedan",
-  "electric",
-  "convertible",
-];
 
 export default function FleetListing() {
   const searchParams = useSearchParams();
   const requested = searchParams.get("category");
   const initialCategory =
-    categories.find((candidate) => candidate === requested) ?? "all";
+    fleetFilterCategories.find((candidate) => candidate.value === requested)
+      ?.value ?? "all";
   const [category, setCategory] = useState(initialCategory);
   const { items: vehicles, error } = useAdminCollection(
     adminRepositories.vehicles,
@@ -39,13 +34,18 @@ export default function FleetListing() {
     <main className="fleet-page">
       <div className="site-container">
         <header className="fleet-page__header">
-          <p>THE VÉLOCE COLLECTION</p>
+          <p>THE EPICDRIVE FLEET</p>
           <h1>Find your perfect drive.</h1>
           <span>
-            Explore the vehicles currently listed in our local fleet catalogue.
+            Starting rates and specifications follow the supplied fleet list.
+            Confirm the exact vehicle variant and rental details with EPICDRIVE.
           </span>
         </header>
-        <FleetFilters onCategoryChange={setCategory} selectedCategory={category} />
+        <FleetFilters
+          categories={fleetFilterCategories}
+          onCategoryChange={setCategory}
+          selectedCategory={category}
+        />
         {error ? (
           <p className="fleet-route-message" role="alert">
             {error}

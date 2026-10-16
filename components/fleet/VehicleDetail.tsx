@@ -9,7 +9,12 @@ import { VehicleBookingCard } from "@/components/fleet/VehicleBookingCard";
 import { VehicleDetailHero } from "@/components/fleet/VehicleDetailHero";
 import { VehicleSpecs } from "@/components/fleet/VehicleSpecs";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { vehicles as seedVehicles, type Vehicle } from "@/data/vehicles";
+import {
+  fleetVehicles as seedVehicles,
+  vehicleCategoryLabels,
+  type Vehicle,
+} from "@/data/vehicles";
+import { formatINR } from "@/lib/currency";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -18,27 +23,12 @@ interface VehicleDetailProps {
   fleetVehicles?: Vehicle[];
 }
 
-const categoryLabels: Record<Vehicle["category"], string> = {
-  sport: "Sport",
-  suv: "SUV",
-  sedan: "Sedan",
-  electric: "Electric",
-  convertible: "Convertible",
-};
-
 function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
-  const fallback: Record<Vehicle["category"], string> = {
-    sport: "/images/vehicles/hero-sport-placeholder.svg",
-    suv: "/images/vehicles/hero-suv-placeholder.svg",
-    sedan: "/images/vehicles/hero-sedan-placeholder.svg",
-    electric: "/images/vehicles/hero-electric-placeholder.svg",
-    convertible: "/images/vehicles/hero-sport-placeholder.svg",
-  };
   const [imageFailed, setImageFailed] = useState(false);
   const image =
-    imageFailed || !vehicle.imagePlaceholder
-      ? fallback[vehicle.category]
-      : vehicle.imagePlaceholder;
+    imageFailed || !vehicle.image
+      ? "/images/vehicles/vehicle-photo-unavailable.svg"
+      : vehicle.image;
 
   return (
     <Link
@@ -47,9 +37,13 @@ function RelatedVehicleCard({ vehicle }: { vehicle: Vehicle }) {
       href={`/fleet/${vehicle.slug}`}
     >
       <div className="vehicle-related-card__image">
-        <span>{categoryLabels[vehicle.category]}</span>
+        <span>{vehicleCategoryLabels[vehicle.category]}</span>
         <Image
-          alt={`${vehicle.name}, ${vehicle.type}`}
+          alt={
+            image !== vehicle.image
+              ? `Photo unavailable for ${vehicle.name}`
+              : `${vehicle.name}, ${vehicle.type}`
+          }
           fill
           loading="lazy"
           sizes="(max-width: 700px) 90vw, (max-width: 1100px) 45vw, 30vw"
@@ -139,7 +133,7 @@ export function VehicleDetail({
             <dl>
               <div>
                 <dt>Category</dt>
-                <dd>{categoryLabels[vehicle.category]}</dd>
+                <dd>{vehicleCategoryLabels[vehicle.category]}</dd>
               </div>
               <div>
                 <dt>Type</dt>
@@ -164,21 +158,21 @@ export function VehicleDetail({
         data-detail-reveal
       >
         <div className="site-container vehicle-performance__inner">
-          <p className="vehicle-detail__eyebrow">PERFORMANCE</p>
+          <p className="vehicle-detail__eyebrow">VEHICLE DETAILS</p>
           <GlassCard className="vehicle-performance__panel">
             <h2 id="vehicle-performance-heading">{vehicle.name}</h2>
             <div className="vehicle-performance__metrics">
               <div>
-                <span>0–100 KM/H</span>
-                <strong>{vehicle.acceleration.toFixed(1)}s</strong>
+                <span>SEATS</span>
+                <strong>{vehicle.seats}</strong>
               </div>
               <div>
-                <span>POWER</span>
-                <strong>{vehicle.horsepower} HP</strong>
+                <span>FUEL</span>
+                <strong>{vehicle.fuelType}</strong>
               </div>
               <div>
-                <span>TRANSMISSION</span>
-                <strong>{vehicle.transmission}</strong>
+                <span>STARTING PRICE / DAY</span>
+                <strong>{formatINR(vehicle.pricePerDay)}</strong>
               </div>
             </div>
           </GlassCard>

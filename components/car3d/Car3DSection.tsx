@@ -93,7 +93,7 @@ const CHAPTERS = [
   },
   {
     number: "07",
-    eyebrow: "THE VÉLOCE EXPERIENCE",
+    eyebrow: "THE EPICDRIVE EXPERIENCE",
     title: "Designed around the driver.",
     description: "A closer view of the dashboard and interior details present in this model.",
   },
@@ -111,7 +111,7 @@ const CHAPTERS = [
   },
   {
     number: "10",
-    eyebrow: "VÉLOCE",
+    eyebrow: "EPICDRIVE",
     title: "Made to move you.",
     description: "Every angle. One drive.",
   },

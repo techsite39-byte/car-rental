@@ -2,16 +2,16 @@
 
 import Image from "next/image";
 import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
-import { gsap } from "gsap";
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
+import type { RefObject } from "react";
 import {
   heroVehiclePresentations,
+  vehicleCategoryLabels,
+  type HeroCategory,
   type HeroVehicle as HeroVehicleData,
 } from "@/data/vehicles";
 
@@ -21,42 +21,88 @@ interface HeroVehicleProps {
   artworkRef: RefObject<HTMLDivElement | null>;
 }
 
-interface VehicleTransition {
-  id: number;
-  from: HeroVehicleData;
-  to: HeroVehicleData;
-}
+const categoryVehicleImages: Record<HeroCategory, string> = {
+  sport: "/sport.png",
+  suv: "/suv.png",
+  sedan: "/sedan.png",
+  electric: "/electric.png",
+};
+
+const categoryMotion: Record<HeroCategory, Variants> = {
+  sport: {
+    enter: { opacity: 0, x: -220, scale: 0.98 },
+    visible: { opacity: 1, x: 0, scale: 1 },
+    exit: { opacity: 0, x: 48, scale: 0.99 },
+  },
+  suv: {
+    enter: { opacity: 0, x: -88, y: 16, scale: 0.985 },
+    visible: { opacity: 1, x: 0, y: [16, -3, 0], scale: 1 },
+    exit: { opacity: 0, x: 40, scale: 0.99 },
+  },
+  sedan: {
+    enter: { opacity: 0, x: -68 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: 36 },
+  },
+  electric: {
+    enter: {
+      opacity: 0,
+      x: 60,
+      filter: "drop-shadow(0 0 0 rgb(216 255 79 / 0%))",
+    },
+    visible: {
+      opacity: 1,
+      x: 0,
+      filter: "drop-shadow(0 0 24px rgb(216 255 79 / 20%))",
+    },
+    exit: { opacity: 0, x: 32 },
+  },
+};
+
+const reducedMotionVariants: Variants = {
+  enter: { opacity: 1, x: 0, y: 0, scale: 1, filter: "none" },
+  visible: { opacity: 1, x: 0, y: 0, scale: 1, filter: "none" },
+  exit: { opacity: 1, x: 0, y: 0, scale: 1 },
+};
+
+const categoryTransition = {
+  duration: 0.88,
+  ease: [0.2, 0.82, 0.25, 1] as const,
+};
 
 interface VehicleImageFrameProps {
   vehicle: HeroVehicleData;
-  priority: boolean;
-  frameRef?: (element: HTMLDivElement | null) => void;
+  reduceMotion: boolean;
 }
 
 function VehicleImageFrame({
   vehicle,
-  priority,
-  frameRef,
+  reduceMotion,
 }: VehicleImageFrameProps) {
   const presentation = heroVehiclePresentations[vehicle.category];
 
   return (
-    <div
+    <motion.div
       aria-hidden="true"
       className="hero-vehicle__frame"
       data-hero-frame
-      ref={frameRef}
+      animate="visible"
+      exit="exit"
+      initial={reduceMotion ? false : "enter"}
+      transition={reduceMotion ? { duration: 0 } : categoryTransition}
+      variants={
+        reduceMotion ? reducedMotionVariants : categoryMotion[vehicle.category]
+      }
     >
       <Image
-        alt={`${presentation.brand} ${presentation.model}`}
+        alt={`${vehicleCategoryLabels[vehicle.category]} car`}
         className="hero-vehicle__image"
         fill
-        priority={priority}
-        sizes="(max-width: 700px) 115vw, (max-width: 1024px) 75vw, 58vw"
-        src={presentation.image}
-        unoptimized
+        loading="eager"
+        sizes="(max-width: 700px) 100vw, (max-width: 1024px) 75vw, 58vw"
+        src={categoryVehicleImages[vehicle.category]}
       />
-    </div>
+    </motion.div>
   );
 }
 
@@ -65,123 +111,8 @@ export function HeroVehicle({
   vehicleRef,
   artworkRef,
 }: HeroVehicleProps) {
-  const [displayedVehicle, setDisplayedVehicle] = useState(vehicle);
-  const [transition, setTransition] = useState<VehicleTransition | null>(null);
-  const targetVehicleRef = useRef(vehicle);
-  const transitionIdRef = useRef(0);
-  const outgoingFrameRef = useRef<HTMLDivElement>(null);
-  const incomingFrameRef = useRef<HTMLDivElement>(null);
-  const transitionTimelineRef = useRef<gsap.core.Timeline | null>(null);
-  const [initialVehicleId] = useState(vehicle.id);
-  const reducedMotionRef = useRef(false);
-  const setOutgoingFrame = useCallback(
-    (element: HTMLDivElement | null) => {
-      outgoingFrameRef.current = element;
-    },
-    [],
-  );
-  const setIncomingFrame = useCallback(
-    (element: HTMLDivElement | null) => {
-      incomingFrameRef.current = element;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    reducedMotionRef.current = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    Object.values(heroVehiclePresentations).forEach(({ image }) => {
-      const preload = new window.Image();
-      preload.src = image;
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (vehicle.id === targetVehicleRef.current.id) return;
-
-    const from = targetVehicleRef.current;
-    targetVehicleRef.current = vehicle;
-    const id = ++transitionIdRef.current;
-    transitionTimelineRef.current?.kill();
-
-    if (reducedMotionRef.current) {
-      setDisplayedVehicle(vehicle);
-      setTransition(null);
-      return;
-    }
-
-    setTransition({ id, from, to: vehicle });
-  }, [vehicle]);
-
-  useLayoutEffect(() => {
-    if (!transition) return;
-
-    const outgoingFrame = outgoingFrameRef.current;
-    const incomingFrame = incomingFrameRef.current;
-    if (!outgoingFrame || !incomingFrame) return;
-
-    if (reducedMotionRef.current) {
-      setDisplayedVehicle(transition.to);
-      setTransition(null);
-      return;
-    }
-
-    const timeline = gsap.timeline({
-      onComplete: () => {
-        if (transition.id !== transitionIdRef.current) return;
-        setDisplayedVehicle(transition.to);
-        setTransition(null);
-      },
-    });
-
-    timeline
-      .fromTo(
-        outgoingFrame,
-        { autoAlpha: 1, x: 0, scale: 1, filter: "blur(0px)" },
-        {
-          autoAlpha: 0,
-          x: 110,
-          scale: 1.04,
-          filter: "blur(7px)",
-          duration: 0.58,
-          ease: "power3.in",
-        },
-      )
-      .fromTo(
-        incomingFrame,
-        { autoAlpha: 0, x: 110, y: 20, scale: 1.04, filter: "blur(7px)" },
-        {
-          autoAlpha: 1,
-          x: 0,
-          y: 0,
-          scale: 1,
-          filter: "blur(0px)",
-          duration: 0.82,
-          ease: "power3.out",
-        },
-        "-=0.36",
-      );
-
-    transitionTimelineRef.current = timeline;
-
-    return () => {
-      timeline.kill();
-      if (transitionTimelineRef.current === timeline) {
-        transitionTimelineRef.current = null;
-      }
-    };
-  }, [transition]);
-
-  useEffect(
-    () => () => {
-      transitionTimelineRef.current?.kill();
-    },
-    [],
-  );
-
   const presentation = heroVehiclePresentations[vehicle.category];
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <div
@@ -190,29 +121,26 @@ export function HeroVehicle({
       ref={vehicleRef}
     >
       <div className="hero-vehicle__glow" />
-      <div className="hero-vehicle__artwork" ref={artworkRef}>
-        {transition
-          ? [
-              <VehicleImageFrame
-                frameRef={setOutgoingFrame}
-                key={transition.from.id}
-                priority={transition.from.id === initialVehicleId}
-                vehicle={transition.from}
-              />,
-              <VehicleImageFrame
-                frameRef={setIncomingFrame}
-                key={transition.to.id}
-              priority={transition.to.id === initialVehicleId}
-                vehicle={transition.to}
-              />,
-            ]
-          : (
-              <VehicleImageFrame
-                key={displayedVehicle.id}
-                priority={displayedVehicle.id === initialVehicleId}
-                vehicle={displayedVehicle}
-              />
-            )}
+      <div
+        className="hero-vehicle__artwork"
+        ref={artworkRef}
+        style={{ maskImage: "none", WebkitMaskImage: "none" }}
+      >
+        {reduceMotion ? (
+          <VehicleImageFrame
+            key={vehicle.category}
+            reduceMotion
+            vehicle={vehicle}
+          />
+        ) : (
+          <AnimatePresence initial={false} mode="wait">
+            <VehicleImageFrame
+              key={vehicle.category}
+              reduceMotion={false}
+              vehicle={vehicle}
+            />
+          </AnimatePresence>
+        )}
       </div>
       <div className="hero-vehicle__caption">
         <span className="hero-vehicle__brand">{presentation.brand}</span>

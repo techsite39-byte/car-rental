@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { ContactForm } from "@/components/contact/ContactForm";
 
 export const metadata: Metadata = {
-  title: "Contact VÉLOCE — Premium Car Rental",
-  description: "Send an enquiry to the VÉLOCE concierge.",
+  title: "Contact EPICDRIVE Car Rentals — Madurai",
+  description: "Contact EPICDRIVE Car Rentals in Madurai.",
 };
 
 export default function ContactPage() {

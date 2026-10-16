@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { VehicleDetailRoute } from "@/components/fleet/VehicleDetailRoute";
-import { vehicles } from "@/data/vehicles";
+import { fleetVehicles as vehicles } from "@/data/vehicles";
 
 interface VehicleDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -17,12 +17,12 @@ export async function generateMetadata({
   const vehicle = vehicles.find((candidate) => candidate.slug === slug);
 
   if (!vehicle) {
-    return { title: "Vehicle not found — VÉLOCE" };
+    return { title: "Vehicle not found — EPICDRIVE" };
   }
 
   return {
-    title: `${vehicle.name} — VÉLOCE Premium Cars`,
-    description: `${vehicle.description} Reserve this premium ${vehicle.type.toLowerCase()} with VÉLOCE.`,
+    title: `${vehicle.name} — EPICDRIVE Car Rentals`,
+    description: `${vehicle.description} Book with EPICDRIVE Car Rentals in Madurai.`,
   };
 }
 

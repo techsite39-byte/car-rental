@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { BookingForm } from "@/components/booking/BookingForm";
 
 export const metadata: Metadata = {
-  title: "Reserve Your Journey — VÉLOCE",
+  title: "Book Your Journey — EPICDRIVE",
   description:
-    "Reserve a premium vehicle with VÉLOCE and plan your next journey.",
+    "Book a self-drive vehicle with EPICDRIVE Car Rentals in Madurai.",
 };
 
 type BookingSearchParams = Record<string, string | string[] | undefined>;
@@ -23,15 +23,15 @@ export default function BookingPage({
     <main className="booking-page">
       <div className="site-container">
         <header className="booking-page__header" data-booking-reveal>
-          <p className="booking-page__eyebrow">RESERVE YOUR JOURNEY</p>
+          <p className="booking-page__eyebrow">BOOK YOUR JOURNEY</p>
           <h1>
             Your next
             <br />
             journey starts here.
           </h1>
           <p className="booking-page__intro">
-            Choose your vehicle, dates, and preferences. We&apos;ll take care of
-            the rest.
+            Choose your vehicle, dates, and preferences. Our team will confirm
+            the final details with you.
           </p>
         </header>
         <Suspense
@@ -61,8 +61,9 @@ async function BookingFormWithContext({
         vehicle: firstValue(params.vehicle),
         pickup: firstValue(params.pickup),
         returnLocation: firstValue(params.return),
-        startDate: firstValue(params.startDate),
-        endDate: firstValue(params.endDate),
+        startDate:
+          firstValue(params.startDate) ?? firstValue(params.pickupDate),
+        endDate: firstValue(params.endDate) ?? firstValue(params.returnDate),
         driver: firstValue(params.driver),
         roundTrip: firstValue(params.roundTrip),
       }}

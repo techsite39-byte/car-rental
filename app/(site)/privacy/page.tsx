@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy — VÉLOCE",
-  description: "Privacy page placeholder for the VÉLOCE frontend demo.",
+  title: "Privacy — EPICDRIVE",
+  description: "Privacy page placeholder for EPICDRIVE Car Rentals.",
 };
 
 export default function PrivacyPage() {

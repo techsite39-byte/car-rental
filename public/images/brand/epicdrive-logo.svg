@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 128" role="img" aria-labelledby="title">
+  <title id="title">EPICDRIVE Car Rentals</title>
+  <g fill="none" stroke="#f4f5ef" stroke-linecap="round" stroke-linejoin="round" stroke-width="5">
+    <path d="M17 77h14l11-26c2-5 7-8 12-8h65c6 0 11 3 14 8l16 26h12v18h-16a18 18 0 0 0-35 0H68a18 18 0 0 0-35 0H17z"/>
+    <path d="m48 68 10-19h54l13 19z"/>
+    <circle cx="50" cy="95" r="10" fill="#070807"/>
+    <circle cx="127" cy="95" r="10" fill="#070807"/>
+  </g>
+  <text x="190" y="82" fill="#f4f5ef" font-family="Arial, Helvetica, sans-serif" font-size="66" font-weight="800" letter-spacing="2">EPICDRIVE</text>
+  <path d="M192 101h161" stroke="#d8ff4f" stroke-width="6"/>
+  <text x="366" y="108" fill="#92968c" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="4">CAR RENTALS</text>
+</svg>

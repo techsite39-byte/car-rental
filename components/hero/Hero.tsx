@@ -312,12 +312,12 @@ export function Hero() {
               ref={statsRef}
             >
               <div className="hero-stats__item">
-                <dt>0–100 km/h</dt>
-                <dd>{statsVehicle.acceleration.toFixed(1)}s</dd>
+                <dt>Seats</dt>
+                <dd>{statsVehicle.seats}</dd>
               </div>
               <div className="hero-stats__item">
-                <dt>Power</dt>
-                <dd>{statsVehicle.horsepower} <span>hp</span></dd>
+                <dt>Fuel</dt>
+                <dd>{statsVehicle.fuelType}</dd>
               </div>
               <div className="hero-stats__item">
                 <dt>From</dt>
@@ -327,7 +327,7 @@ export function Hero() {
           </div>
         </div>
 
-        <BookingBar vehicleSlug={vehicle.slug} />
+        <BookingBar vehicleId={vehicle.id} />
       </div>
     </section>
   );

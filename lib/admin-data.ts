@@ -1,5 +1,5 @@
 import { deals as seedDeals, type Deal } from "@/data/deals";
-import { vehicles as seedVehicles, type Vehicle } from "@/data/vehicles";
+import { fleetVehicles as seedVehicles, type Vehicle } from "@/data/vehicles";
 import type { DriverPreference } from "@/lib/booking";
 
 export type BookingStatus = "pending" | "reviewed" | "cancelled";
@@ -51,7 +51,7 @@ export type EnquiryRepository = Repository<ContactEnquiry>;
 export type DealRepository = Repository<ManagedDeal>;
 
 const STORAGE_KEYS = {
-  vehicles: "veloce-admin-vehicles-v1",
+  vehicles: "epicdrive-admin-vehicles-v2",
   bookings: "veloce-admin-bookings-v1",
   enquiries: "veloce-admin-enquiries-v1",
   deals: "veloce-admin-deals-v1",
@@ -67,6 +67,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isVehicleCategory(
+  value: unknown,
+): value is Vehicle["category"] {
+  return (
+    value === "mpv" ||
+    value === "suv" ||
+    value === "sedan" ||
+    value === "hatchback"
+  );
+}
+
 function isVehicle(value: unknown): value is Vehicle {
   return (
     isRecord(value) &&
@@ -74,12 +85,13 @@ function isVehicle(value: unknown): value is Vehicle {
     typeof value.slug === "string" &&
     typeof value.name === "string" &&
     typeof value.brand === "string" &&
-    typeof value.category === "string" &&
+    isVehicleCategory(value.category) &&
     typeof value.pricePerDay === "number" &&
     typeof value.seats === "number" &&
-    typeof value.horsepower === "number" &&
-    typeof value.acceleration === "number" &&
-    typeof value.transmission === "string" &&
+    (value.horsepower === undefined || typeof value.horsepower === "number") &&
+    (value.acceleration === undefined || typeof value.acceleration === "number") &&
+    (value.transmission === undefined ||
+      typeof value.transmission === "string") &&
     typeof value.fuelType === "string" &&
     typeof value.image === "string" &&
     typeof value.description === "string" &&
@@ -141,7 +153,7 @@ function isManagedDeal(value: unknown): value is ManagedDeal {
 }
 
 function notifyChange() {
-  window.dispatchEvent(new Event("veloce-admin-data"));
+  window.dispatchEvent(new Event("epicdrive-admin-data"));
 }
 
 function createBrowserRepository<T extends { id: string }>(

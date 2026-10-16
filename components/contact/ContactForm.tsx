@@ -51,22 +51,25 @@ export function ContactForm() {
     <main className="contact-page">
       <div className="site-container contact-page__inner">
         <header className="contact-page__intro">
-          <p>THE VÉLOCE CONCIERGE</p>
+          <p>EPICDRIVE CAR RENTALS · MADURAI</p>
           <h1>Let&apos;s plan your next journey.</h1>
           <span>
             Share a few details and our team can follow up. This local
             prototype does not send email or messages.
           </span>
           <div>
-            <a href={`mailto:${siteConfig.contact.email}`}>
-              {siteConfig.contact.email}
-            </a>
             <a href={`tel:${siteConfig.contact.phone.replace(/[^\d+]/g, "")}`}>
               {siteConfig.contact.phone}
             </a>
+            <a href={siteConfig.contact.whatsapp} rel="noreferrer" target="_blank">
+              WhatsApp us
+            </a>
           </div>
         </header>
-        <section aria-labelledby="contact-form-heading" className="contact-card">
+        <section
+          aria-labelledby="contact-form-heading"
+          className="contact-card"
+        >
           <div>
             <p>GET IN TOUCH</p>
             <h2 id="contact-form-heading">Send an enquiry</h2>
@@ -78,7 +81,7 @@ export function ContactForm() {
                 Your enquiry is saved in this browser and is not sent to a
                 concierge. No booking or reservation has been confirmed.
               </span>
-              <Link href="/">Return to VÉLOCE</Link>
+              <Link href="/">Return to EPICDRIVE</Link>
             </div>
           ) : (
             <form className="contact-form" onSubmit={submit}>

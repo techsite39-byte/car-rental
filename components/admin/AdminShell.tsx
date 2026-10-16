@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { siteConfig } from "@/data/site";
 import {
   Bell,
   CalendarDays,
@@ -64,12 +65,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   const sidebar = (
     <aside aria-label="Admin sidebar" className="admin-sidebar">
-      <Link aria-label="VÉLOCE admin home" className="admin-brand" href="/admin" onClick={() => setDrawerOpen(false)}>
+      <Link
+        aria-label={`${siteConfig.brand.name} admin home`}
+        className="admin-brand"
+        href="/admin"
+        onClick={() => setDrawerOpen(false)}
+      >
         <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="9" />
           <path d="M8.25 14.5 12 8.25l3.75 6.25M9.75 12h4.5" />
         </svg>
-        <span>VÉLOCE</span>
+        <span>{siteConfig.brand.name}</span>
         <small>ADMIN</small>
       </Link>
       <p className="admin-sidebar__label">WORKSPACE</p>
@@ -151,7 +157,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               )}
             </button>
             <div>
-              <p>VÉLOCE / ADMIN</p>
+              <p>{siteConfig.brand.name} / ADMIN</p>
               <h1>{title}</h1>
             </div>
           </div>
@@ -166,7 +172,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <span className="admin-notification-dot" />
             </button>
             <div aria-label="Admin profile placeholder" className="admin-profile">
-              <span className="admin-profile__avatar">V</span>
+              <span className="admin-profile__avatar">
+                {siteConfig.brand.name[0]}
+              </span>
               <span className="admin-profile__text">
                 <strong>Admin</strong>
                 <small>Prototype account</small>
