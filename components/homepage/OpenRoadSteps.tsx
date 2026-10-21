@@ -78,7 +78,12 @@ export function OpenRoadSteps() {
     };
 
     const setFill = gsap.quickSetter(fill, "scaleX");
-    const setIndicator = gsap.quickSetter(indicator, "left", "%");
+    let trackWidth = track.getBoundingClientRect().width;
+    const trackResizeObserver = new ResizeObserver(([entry]) => {
+      if (entry) trackWidth = entry.contentRect.width;
+    });
+    trackResizeObserver.observe(track);
+    const setIndicator = gsap.quickSetter(indicator, "x", "px");
     const updateProgress = (progress: number) => {
       const clampedProgress = gsap.utils.clamp(0, 1, progress);
       const activeIndex = Math.min(
@@ -87,7 +92,7 @@ export function OpenRoadSteps() {
       );
 
       setFill(clampedProgress);
-      setIndicator(clampedProgress * 100);
+      setIndicator(clampedProgress * trackWidth);
       progressBar.setAttribute(
         "aria-valuenow",
         String(Math.round(clampedProgress * 100)),
@@ -196,6 +201,7 @@ export function OpenRoadSteps() {
       window.removeEventListener("pageshow", refreshAfterPageRestore);
       window.removeEventListener("pagehide", saveScrollPosition);
       sequenceLayoutObserver?.disconnect();
+      trackResizeObserver.disconnect();
       context?.revert();
     };
   }, []);

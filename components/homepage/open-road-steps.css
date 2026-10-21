@@ -63,7 +63,7 @@
     0 0 0 5px rgb(216 255 79 / 10%),
     0 0 18px rgb(216 255 79 / 65%);
   transform: translate(-50%, -50%);
-  will-change: left;
+  will-change: transform;
 }
 
 .open-road-steps__cards {

@@ -7,15 +7,21 @@ import { SECTION2_TEXT_SCENES } from "@/components/hero/section2TextScenes";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FRAME_COUNT = 337;
+const FRAME2_COUNT = 300;
+const FRAME2_1_COUNT = 90;
+const FRAME_COUNT = FRAME2_COUNT + FRAME2_1_COUNT;
 const LAST_FRAME_INDEX = FRAME_COUNT - 1;
-const SOURCE_WIDTH = 3840;
-const SOURCE_HEIGHT = 2160;
-const KEYFRAME_INTERVAL = 42;
+const SOURCE_WIDTH = 1280;
+const SOURCE_HEIGHT = 720;
+const KEYFRAME_INTERVAL = 30;
 const MOBILE_QUERY = "(max-width: 700px)";
 
 function getFrameUrl(frame: number): string {
-  return `/Second/Untitled${String(108000 + frame).padStart(8, "0")}.jpg`;
+  if (frame < FRAME2_COUNT) {
+    return `/frame2/ezgif-frame-${String(frame + 1).padStart(3, "0")}.png`;
+  }
+
+  return `/frame2.1/ezgif-frame-${String(frame - FRAME2_COUNT + 1).padStart(3, "0")}.png`;
 }
 
 interface DrawParams {
@@ -66,6 +72,7 @@ export function useSection2Animation() {
     let disposed = false;
     let ticking = false;
     let rafId = 0;
+    let resizeRefreshRafId = 0;
     let isVisible = false;
     let latestScrollY = window.scrollY || window.pageYOffset || 0;
     let currentTargetFrame = 0;
@@ -543,6 +550,10 @@ export function useSection2Animation() {
         updateDimensions(rect.width, rect.height);
       }
       updateSection2();
+      cancelAnimationFrame(resizeRefreshRafId);
+      resizeRefreshRafId = requestAnimationFrame(() => {
+        if (!disposed) ScrollTrigger.refresh();
+      });
     }
 
     window.addEventListener("resize", handleResize, { passive: true });
@@ -558,6 +569,7 @@ export function useSection2Animation() {
     return () => {
       disposed = true;
       cancelAnimationFrame(rafId);
+      cancelAnimationFrame(resizeRefreshRafId);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);

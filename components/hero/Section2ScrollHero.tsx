@@ -16,22 +16,18 @@ export function Section2ScrollHero() {
       ref={sectionRef}
     >
       <picture>
-        <source
-          media="(max-width: 700px)"
-          srcSet="/Second-mobile/Untitled00108000.jpg"
-        />
         <Image
           alt="BMW cinematic journey sequence"
           className="section2-sequence__fallback"
           decoding="async"
           draggable={false}
-          height={2160}
+          height={720}
           sizes="100vw"
           loading="lazy"
           ref={fallbackRef}
-          src="/Second/Untitled00108000.jpg"
+          src="/frame2/ezgif-frame-001.png"
           unoptimized
-          width={3840}
+          width={1280}
         />
       </picture>
       <canvas
