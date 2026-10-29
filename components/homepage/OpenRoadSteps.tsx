@@ -163,7 +163,7 @@ export function OpenRoadSteps() {
     };
     const precedingSequences = Array.from(
       section.parentElement?.querySelectorAll<HTMLElement>(
-        ".frame-sequence, .section2-sequence",
+        ".section2-sequence",
       ) ?? [],
     ).filter(
       (sequence) =>

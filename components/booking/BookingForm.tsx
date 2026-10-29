@@ -20,7 +20,11 @@ export interface BookingContext {
   pickup?: string;
   returnLocation?: string;
   startDate?: string;
+  startTime?: string;
   endDate?: string;
+  endTime?: string;
+  customerName?: string;
+  customerPhone?: string;
   driver?: string;
   roundTrip?: string;
 }
@@ -115,9 +119,13 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     initialContext.returnLocation ?? "",
   );
   const [startDate, setStartDate] = useState(initialContext.startDate ?? "");
-  const [startTime, setStartTime] = useState("10:00");
+  const [startTime, setStartTime] = useState(
+    initialContext.startTime ?? "10:00",
+  );
   const [endDate, setEndDate] = useState(initialContext.endDate ?? "");
-  const [endTime, setEndTime] = useState("10:00");
+  const [endTime, setEndTime] = useState(
+    initialContext.endTime ?? "10:00",
+  );
   const [driver, setDriver] = useState<DriverPreference>(
     getDriverPreference(initialContext.driver),
   );
@@ -125,8 +133,12 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     initialContext.roundTrip === undefined ||
       initialContext.roundTrip === "true",
   );
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(
+    initialContext.customerName ?? "",
+  );
+  const [customerPhone, setCustomerPhone] = useState(
+    initialContext.customerPhone ?? "",
+  );
   const [customerEmail, setCustomerEmail] = useState("");
   const [additionalRequests, setAdditionalRequests] = useState("");
   const [errors, setErrors] = useState<BookingErrors>({});

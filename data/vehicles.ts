@@ -35,6 +35,8 @@ export interface Vehicle {
   category: VehicleCategory;
   type: string;
   pricePerDay: number;
+  originalPricePerDay?: number;
+  discount?: number;
   seats: number;
   rating?: number;
   horsepower?: number;

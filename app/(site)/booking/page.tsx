@@ -63,7 +63,11 @@ async function BookingFormWithContext({
         returnLocation: firstValue(params.return),
         startDate:
           firstValue(params.startDate) ?? firstValue(params.pickupDate),
+        startTime: firstValue(params.pickupTime),
         endDate: firstValue(params.endDate) ?? firstValue(params.returnDate),
+        endTime: firstValue(params.returnTime),
+        customerName: firstValue(params.name),
+        customerPhone: firstValue(params.phone),
         driver: firstValue(params.driver),
         roundTrip: firstValue(params.roundTrip),
       }}

@@ -9,7 +9,7 @@
   min-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
-  background: var(--background, #070807);
+  background: var(--background);
   contain: paint layout size;
 }
 

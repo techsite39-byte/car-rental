@@ -514,7 +514,7 @@ export function useFleetCinematicAnimation() {
 
     const precedingPinnedSections = Array.from(
       section.parentElement?.querySelectorAll<HTMLElement>(
-        ".frame-sequence, .section2-sequence, .open-road-steps",
+        ".section2-sequence, .open-road-steps",
       ) ?? [],
     ).filter(
       (candidate) =>

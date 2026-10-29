@@ -7,11 +7,16 @@ export const metadata: Metadata = {
   title: `${siteConfig.brand.fullName} — ${siteConfig.brand.tagline}`,
   description:
     "Self-drive car rentals in Madurai. Choose from the EPICDRIVE fleet and plan your journey.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
-  colorScheme: "dark",
-  themeColor: "#070807",
+  colorScheme: "light",
+  themeColor: "#ED1C24",
 };
 
 export default function RootLayout({

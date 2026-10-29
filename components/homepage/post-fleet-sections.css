@@ -1,6 +1,6 @@
 .post-fleet-sections {
   overflow: clip;
-  background: #070807;
+  background: var(--background);
 }
 
 .driving-experience,
@@ -10,8 +10,8 @@
 
 .driving-experience {
   background:
-    radial-gradient(ellipse at 50% 2%, rgb(216 255 79 / 4%), transparent 47%),
-    #070807;
+    radial-gradient(ellipse at 50% 2%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 47%),
+    var(--background);
 }
 
 .post-fleet-header {
@@ -21,7 +21,7 @@
 
 .post-fleet-eyebrow {
   margin: 0 0 1rem;
-  color: #d8ff4f;
+  color: var(--accent);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.18em;
@@ -31,7 +31,7 @@
 .post-fleet-header h2,
 .journey-rules__content h2 {
   margin: 0;
-  color: #f4f5ef;
+  color: var(--text-primary);
   font-size: clamp(2.5rem, 5vw, 4.5rem);
   font-weight: 500;
   letter-spacing: -0.065em;
@@ -41,7 +41,7 @@
 .post-fleet-intro {
   max-width: 39rem;
   margin: 1.25rem 0 0;
-  color: #92968c;
+  color: var(--text-primary);
   font-size: 1rem;
   line-height: 1.7;
 }
@@ -63,13 +63,11 @@
   position: relative;
   min-height: 25rem;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--border);
   border-radius: 1.5rem;
-  background: #11140f;
+  background: var(--surface);
   isolation: isolate;
-  transition:
-    border-color 450ms ease,
-    transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: border-color 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .post-fleet-image-motion {
@@ -105,7 +103,7 @@
   z-index: 2;
   top: 1.25rem;
   right: 1.25rem;
-  color: rgb(244 245 239 / 72%);
+  color: rgb(255 255 255 / 86%);
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
 }
@@ -122,7 +120,7 @@
 .driving-experience-card__eyebrow,
 .occasion-card__eyebrow {
   margin: 0 0 0.75rem;
-  color: #d8ff4f;
+  color: var(--accent);
   font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -132,7 +130,7 @@
 .driving-experience-card__content h3 {
   min-height: 3.2em;
   margin: 0;
-  color: #f4f5ef;
+  color: #FFFFFF;
   font-size: clamp(1.25rem, 1.7vw, 1.65rem);
   font-weight: 500;
   letter-spacing: -0.04em;
@@ -144,24 +142,24 @@
   align-items: center;
   gap: 0.55rem;
   margin-top: 1.25rem;
-  color: #f4f5ef;
+  color: #FFFFFF;
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .post-fleet-card-action svg {
-  color: #d8ff4f;
-  transition: transform 350ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  color: var(--accent);
+  transition: color 180ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .journey-rules {
   padding-top: clamp(1.5rem, 3vw, 3rem);
   padding-bottom: clamp(5rem, 9vw, 8rem);
-  border-block: 1px solid rgb(255 255 255 / 7%);
+  border-block: 1px solid var(--border);
   background:
-    radial-gradient(ellipse at 82% 50%, rgb(216 255 79 / 4%), transparent 42%),
-    #0b0e0b;
+    radial-gradient(ellipse at 82% 50%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 42%),
+    var(--background-secondary);
 }
 
 .journey-rules__layout {
@@ -176,11 +174,9 @@
   min-width: 0;
   aspect-ratio: 1.5;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--border);
   border-radius: 1.625rem;
-  background:
-    radial-gradient(ellipse at 55% 40%, rgb(100 116 77 / 17%), transparent 48%),
-    #11140f;
+  background: var(--surface);
 }
 
 .journey-rules__visual::after {
@@ -196,7 +192,7 @@
   z-index: 2;
   bottom: 1.5rem;
   left: 1.5rem;
-  color: rgb(244 245 239 / 76%);
+  color: #FFFFFF;
   font-size: 0.625rem;
   letter-spacing: 0.16em;
 }
@@ -211,7 +207,7 @@
 
 .journey-rules__description {
   margin: 1.5rem 0 1.75rem;
-  color: #92968c;
+  color: var(--text-primary);
   font-size: 0.9375rem;
   line-height: 1.75;
 }
@@ -229,34 +225,34 @@
   grid-template-columns: 2.25rem minmax(0, 1fr);
   gap: 0.875rem;
   padding-block: 1rem;
-  border-top: 1px solid rgb(255 255 255 / 10%);
+  border-top: 1px solid var(--border);
 }
 
 .journey-rules__features li > span {
   padding-top: 0.125rem;
-  color: #d8ff4f;
+  color: var(--accent);
   font-size: 0.6875rem;
   letter-spacing: 0.12em;
 }
 
 .journey-rules__features h3 {
   margin: 0;
-  color: #f4f5ef;
+  color: var(--text-primary);
   font-size: 0.9375rem;
   font-weight: 550;
 }
 
 .journey-rules__features p {
   margin: 0.375rem 0 0;
-  color: #92968c;
+  color: var(--text-primary);
   font-size: 0.8125rem;
   line-height: 1.6;
 }
 
 .occasion-section {
   background:
-    radial-gradient(ellipse at 92% 42%, rgb(216 255 79 / 3%), transparent 44%),
-    #070807;
+    radial-gradient(ellipse at 92% 42%, color-mix(in srgb, var(--accent) 3%, transparent), transparent 44%),
+    var(--background);
 }
 
 .occasion-section__header {
@@ -276,9 +272,9 @@
 .occasion-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 9%);
+  border: 1px solid var(--border);
   border-radius: 1.375rem;
-  background: #11140f;
+  background: var(--surface);
   color: inherit;
   text-decoration: none;
   transition:
@@ -290,7 +286,7 @@
   position: relative;
   aspect-ratio: 1.55;
   overflow: hidden;
-  background: #181b16;
+  background: var(--card);
 }
 
 .occasion-card__eyebrow {
@@ -308,7 +304,7 @@
 
 .occasion-card__content h3 {
   margin: 0;
-  color: #f4f5ef;
+  color: var(--text-primary);
   font-size: clamp(1.45rem, 2.1vw, 1.9rem);
   font-weight: 500;
   letter-spacing: -0.045em;
@@ -318,37 +314,22 @@
 .occasion-card__content p {
   min-height: 3.2em;
   margin: 0.75rem 0 0;
-  color: #92968c;
+  color: var(--text-primary);
   font-size: 0.875rem;
   line-height: 1.65;
 }
 
 .driving-experience-card:focus-visible,
 .occasion-card:focus-visible {
-  outline: 2px solid #d8ff4f;
+  outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .driving-experience-card:hover .driving-experience-card__media,
   .occasion-card:hover {
-    transform: translateY(-4px);
-    border-color: rgb(216 255 79 / 46%);
-  }
-
-  .driving-experience-card:hover .post-fleet-image-motion,
-  .occasion-card:hover .post-fleet-image-motion {
-    transform: scale(1.045);
-    transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  }
-
-  .post-fleet-card-action svg {
-    transition: transform 350ms cubic-bezier(0.2, 0.7, 0.2, 1);
-  }
-
-  .driving-experience-card:hover .post-fleet-card-action svg,
-  .occasion-card:hover .post-fleet-card-action svg {
-    transform: translate(3px, -2px);
+    transform: none;
+    border-color: color-mix(in srgb, var(--accent) 46%, transparent);
   }
 }
 

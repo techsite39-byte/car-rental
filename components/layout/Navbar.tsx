@@ -29,11 +29,11 @@ export function Navbar() {
     const scrollToAnchor = () => {
       const sequences = Array.from(
         document.querySelectorAll<HTMLElement>(
-          ".frame-sequence, .section2-sequence",
+          ".section2-sequence",
         ),
       );
       const pinsReady =
-        sequences.length === 2 &&
+        sequences.length > 0 &&
         sequences.every((sequence) =>
           sequence.parentElement?.classList.contains("pin-spacer"),
         );
@@ -162,7 +162,7 @@ export function Navbar() {
             height={64}
             loading="eager"
             priority
-            src="/images/brand/epicdrive-logo.svg"
+            src="/logo.png"
             width={256}
           />
         </Link>

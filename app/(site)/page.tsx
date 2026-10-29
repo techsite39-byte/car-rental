@@ -1,10 +1,12 @@
-import { FrameSequenceHero } from "@/components/hero/FrameSequenceHero";
+import { HomeVideoHero } from "@/components/hero/FrameSequenceHero";
 import { HomeDeferredSections } from "@/components/homepage/HomeDeferredSections";
+import { HomeBookingSection } from "@/components/homepage/HomeBookingSection";
 
 export default function HomePage() {
   return (
     <main className="home-page">
-      <FrameSequenceHero />
+      <HomeVideoHero />
+      <HomeBookingSection />
       <HomeDeferredSections />
     </main>
   );

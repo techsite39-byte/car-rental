@@ -1,0 +1,98 @@
+.fleet-banner-slider {
+  position: relative;
+  z-index: 1;
+  width: min(calc(100% - clamp(2rem, 6vw, 7rem)), var(--content-max-width));
+  margin: 0 auto clamp(-8rem, -8vw, -5rem);
+}
+
+.fleet-banner-slider__viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  overflow: hidden;
+  border: 1px solid var(--brand-border);
+  border-radius: clamp(0.85rem, 1.5vw, 1.25rem);
+  background: var(--brand-light);
+}
+
+.fleet-banner-slider__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 500ms ease-in-out;
+}
+
+.fleet-banner-slider__slide--active {
+  z-index: 1;
+  opacity: 1;
+}
+
+.fleet-banner-slider__slide img {
+  object-fit: cover;
+}
+
+.fleet-banner-slider__dots {
+  position: absolute;
+  bottom: clamp(0.7rem, 1.8vw, 1.25rem);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid rgb(255 255 255 / 88%);
+  border-radius: 999px;
+  background: rgb(23 23 23 / 24%);
+  transform: translateX(-50%);
+}
+
+.fleet-banner-slider__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border: 1px solid var(--brand-red);
+  border-radius: 50%;
+  background: var(--brand-white);
+  cursor: pointer;
+  transition:
+    width 250ms ease,
+    background-color 250ms ease,
+    border-color 250ms ease,
+    transform 250ms ease;
+}
+
+.fleet-banner-slider__dot:hover,
+.fleet-banner-slider__dot:focus-visible {
+  transform: scale(1.12);
+}
+
+.fleet-banner-slider__dot:focus-visible {
+  outline: 2px solid var(--brand-white);
+  outline-offset: 2px;
+}
+
+.fleet-banner-slider__dot--active {
+  width: 1.45rem;
+  border-color: var(--brand-white);
+  border-radius: 999px;
+  background: var(--brand-red);
+}
+
+@media (max-width: 700px) {
+  .fleet-banner-slider {
+    width: calc(100% - 2rem);
+    margin-bottom: -5rem;
+  }
+
+  .fleet-banner-slider__viewport {
+    aspect-ratio: 1.7 / 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fleet-banner-slider__slide,
+  .fleet-banner-slider__dot {
+    transition: none;
+  }
+}

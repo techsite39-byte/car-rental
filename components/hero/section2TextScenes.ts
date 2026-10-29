@@ -14,17 +14,6 @@ export interface TextSceneConfig {
 
 export const SECTION2_TEXT_SCENES: TextSceneConfig[] = [
   {
-    id: "scene-1",
-    start: 0.0,
-    end: 0.18,
-    fadeIn: 0.025,
-    fadeOut: 0.025,
-    eyebrow: "01 — SHOWCASE",
-    headline: "DRIVE THE EXTRAORDINARY.",
-    supporting: "Premium performance. Unforgettable journeys.",
-    positionClass: "section2-text-scene--top-left",
-  },
-  {
     id: "scene-2",
     start: 0.25,
     end: 0.4,
@@ -67,18 +56,5 @@ export const SECTION2_TEXT_SCENES: TextSceneConfig[] = [
     headline: "YOUR ROAD. YOUR MOMENT.",
     supporting: "Designed around the way you move.",
     positionClass: "section2-text-scene--top-left",
-  },
-  {
-    id: "scene-6",
-    start: 0.9,
-    end: 1.0,
-    fadeIn: 0.03,
-    fadeOut: 0.005,
-    eyebrow: "06 — THE FLEET",
-    headline: "YOUR NEXT JOURNEY STARTS HERE.",
-    supporting: "Premium BMW rentals, ready when you are.",
-    positionClass: "section2-text-scene--top-left",
-    ctaText: "EXPLORE THE FLEET",
-    ctaHref: "#fleet",
   },
 ];

@@ -1,0 +1,92 @@
+.trust-banner {
+  display: grid;
+  width: min(calc(100% - clamp(2rem, 6vw, 7rem)), var(--content-max-width));
+  grid-template-columns: minmax(0, 1fr) minmax(24rem, 31rem);
+  align-items: center;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  margin: clamp(1rem, 2.5vw, 2rem) auto 0;
+  padding: clamp(1.1rem, 2vw, 1.5rem) clamp(1.25rem, 2.5vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--brand-red) 28%, var(--brand-dark));
+  border-radius: 1.1rem;
+  background: var(--brand-dark);
+  color: var(--brand-white);
+}
+
+.trust-banner__copy { min-width: 0; }
+.trust-banner__eyebrow {
+  margin: 0 0 0.45rem;
+  color: var(--brand-red);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.trust-banner h2,
+.trust-banner__copy > p:last-child { margin: 0; }
+.trust-banner h2 {
+  color: var(--brand-white);
+  font-size: clamp(1.25rem, 2.2vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+.trust-banner__copy > p:last-child {
+  margin-top: 0.5rem;
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.trust-banner__review {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 1rem;
+  justify-self: end;
+  padding: 0.8rem 1rem;
+  border-radius: 0.85rem;
+  background: var(--brand-white);
+  color: var(--brand-black);
+}
+.trust-banner__logo {
+  display: block;
+  width: 9rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+.trust-banner__divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--brand-border);
+}
+.trust-banner__review-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+.trust-banner__review-copy strong { font-size: 0.78rem; font-weight: 700; }
+.trust-banner__stars {
+  display: inline-flex;
+  gap: 0.12rem;
+  color: #f6b900;
+}
+.trust-banner__review-copy small {
+  color: var(--brand-muted);
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 760px) {
+  .trust-banner {
+    width: min(100% - 2rem, 34rem);
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .trust-banner__review { justify-self: stretch; }
+}
+
+@media (max-width: 420px) {
+  .trust-banner__review { gap: 0.7rem; }
+  .trust-banner__logo { width: 7.5rem; }
+}
