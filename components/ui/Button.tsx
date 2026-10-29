@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ComponentProps, ButtonHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -12,7 +12,9 @@ interface ButtonStyleProps {
 }
 
 type ButtonLinkProps = ButtonStyleProps &
-  Omit<ComponentProps<typeof Link>, "className" | "href"> & { href: string };
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "href"> & {
+    href: string;
+  };
 
 type ButtonElementProps = ButtonStyleProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { href?: never };
@@ -20,14 +22,14 @@ type ButtonElementProps = ButtonStyleProps &
 export type ButtonProps = ButtonLinkProps | ButtonElementProps;
 
 export function Button(props: ButtonProps) {
-  if ("href" in props && typeof props.href === "string") {
+  if ("href" in props && props.href !== undefined) {
     const {
       href,
       className,
       variant = "primary",
       size = "md",
       ...linkProps
-    } = props;
+    } = props as ButtonLinkProps;
     return (
       <Link
         className={cn("button", `button--${variant}`, `button--${size}`, className)}
@@ -43,7 +45,7 @@ export function Button(props: ButtonProps) {
     size = "md",
     type = "button",
     ...buttonProps
-  } = props;
+  } = props as ButtonElementProps;
 
   return (
     <button
