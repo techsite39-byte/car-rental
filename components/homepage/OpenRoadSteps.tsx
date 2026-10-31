@@ -2,6 +2,7 @@
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { CalendarDays, CarFront, CheckCircle2 } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import "./open-road-steps.css";
 
@@ -13,18 +14,21 @@ const STEPS = [
     title: "Choose your car",
     description:
       "Compare the listed cars by category, seating and fuel type.",
+    icon: CarFront,
   },
   {
     number: "02",
     title: "Send a booking request",
     description:
       "Share your preferred locations, dates, times and contact details.",
+    icon: CalendarDays,
   },
   {
     number: "03",
     title: "Confirm your journey",
     description:
       "Our team will follow up to confirm availability, pickup arrangements and final details.",
+    icon: CheckCircle2,
   },
 ] as const;
 
@@ -69,6 +73,9 @@ export function OpenRoadSteps() {
     const cards = Array.from(
       section.querySelectorAll<HTMLElement>("[data-open-road-card]"),
     );
+    const stations = Array.from(
+      section.querySelectorAll<HTMLElement>(".open-road-steps__station"),
+    );
     if (!track || !fill || !indicator || !progressBar || cards.length !== 3) {
       throw new Error("The open-road steps section is missing required elements.");
     }
@@ -107,6 +114,13 @@ export function OpenRoadSteps() {
           card.removeAttribute("aria-current");
         }
       });
+
+      stations.forEach((station, index) => {
+        station.classList.toggle(
+          "open-road-steps__station--active",
+          clampedProgress >= index / (cards.length - 1) - 0.05,
+        );
+      });
     };
 
     const isReducedMotion = window.matchMedia(
@@ -133,12 +147,13 @@ export function OpenRoadSteps() {
       if (context) return;
 
       context = gsap.context(() => {
+        const isMobile = window.innerWidth < 768;
         const trigger = ScrollTrigger.create({
           trigger: section,
-          start: "top top",
-          end: () => `+=${window.innerHeight * 2}`,
-          pin: section,
-          pinSpacing: true,
+          start: isMobile ? "top 75%" : "top top",
+          end: isMobile ? "bottom 25%" : () => `+=${window.innerHeight * 1.5}`,
+          pin: !isMobile,
+          pinSpacing: !isMobile,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => updateProgress(self.progress),
@@ -214,9 +229,15 @@ export function OpenRoadSteps() {
     >
       <div className="site-container">
         <header className="open-road-steps__header">
-          <h2 id="open-road-steps-heading">
-            Three steps to the open road
-          </h2>
+          <div className="open-road-steps__header-copy">
+            <p className="open-road-steps__eyebrow">
+              <span aria-hidden="true" className="open-road-steps__eyebrow-dot" />
+              HOW IT WORKS
+            </p>
+            <h2 id="open-road-steps-heading">
+              Three steps to the open road
+            </h2>
+          </div>
           <p>
             Choose a vehicle and share a few trip details. Our Madurai team will
             follow up to confirm the arrangement.
@@ -243,22 +264,33 @@ export function OpenRoadSteps() {
               className="open-road-steps__indicator"
               data-open-road-indicator
             />
+            <span aria-hidden="true" className="open-road-steps__station" style={{ left: "0%" }} />
+            <span aria-hidden="true" className="open-road-steps__station" style={{ left: "50%" }} />
+            <span aria-hidden="true" className="open-road-steps__station" style={{ left: "100%" }} />
           </div>
         </div>
 
         <ol className="open-road-steps__cards">
-          {STEPS.map((step, index) => (
-            <li
-              aria-current={index === 0 ? "step" : undefined}
-              className={`open-road-steps__card${index === 0 ? " open-road-steps__card--active" : ""}`}
-              data-open-road-card
-              key={step.number}
-            >
-              <span className="open-road-steps__number">{step.number}</span>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </li>
-          ))}
+          {STEPS.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <li
+                aria-current={index === 0 ? "step" : undefined}
+                className={`open-road-steps__card${index === 0 ? " open-road-steps__card--active" : ""}`}
+                data-open-road-card
+                key={step.number}
+              >
+                <div className="open-road-steps__card-top">
+                  <span className="open-road-steps__number">STEP {step.number}</span>
+                  <div aria-hidden="true" className="open-road-steps__icon">
+                    <StepIcon size={20} strokeWidth={2} />
+                  </div>
+                </div>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </li>
+            );
+          })}
         </ol>
       </div>
     </section>

@@ -138,7 +138,10 @@ export function CustomerTestimonials() {
       <div className="customer-testimonials__inner">
         <header className="customer-testimonials__header">
           <div>
-            <p className="customer-testimonials__eyebrow">CUSTOMER STORIES</p>
+            <p className="customer-testimonials__eyebrow">
+              <span aria-hidden="true" className="customer-testimonials__eyebrow-dot" />
+              CUSTOMER STORIES
+            </p>
             <h2 id="customer-testimonials-heading">Trusted by Drivers</h2>
             <p className="customer-testimonials__subtitle">
               Real journeys. Genuine experiences.
@@ -260,12 +263,19 @@ export function CustomerTestimonials() {
           </>
         ) : (
           <div className="customer-testimonials__empty">
-            <Quote aria-hidden="true" size={22} strokeWidth={1.5} />
-            <p>Customer stories are coming soon.</p>
-            <span>
+            <div aria-hidden="true" className="customer-testimonials__empty-badge">
+              <Quote size={28} strokeWidth={1.8} />
+            </div>
+            <p className="customer-testimonials__empty-title">Customer stories are coming soon.</p>
+            <span className="customer-testimonials__empty-desc">
               Reviews will appear here once customers share their feedback and
               approve it for publication.
             </span>
+            <div aria-hidden="true" className="customer-testimonials__trust-pills">
+              <span className="customer-testimonials__trust-pill">★ 5.0 Star Target</span>
+              <span className="customer-testimonials__trust-pill">✓ 100% Genuine Renters</span>
+              <span className="customer-testimonials__trust-pill">🔒 Verified Feedback</span>
+            </div>
           </div>
         )}
       </div>

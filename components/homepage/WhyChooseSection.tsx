@@ -8,6 +8,7 @@ import {
   Star,
   Wrench,
 } from "lucide-react";
+import "./WhyChooseSection.css";
 
 const benefits = [
   {
@@ -57,7 +58,10 @@ export function WhyChooseSection() {
     <section aria-labelledby="why-choose-heading" className="why-choose">
       <div className="why-choose__container">
         <header className="why-choose__header">
-          <p className="why-choose__eyebrow">WHY CHOOSE US</p>
+          <p className="why-choose__eyebrow">
+            <span aria-hidden="true" className="why-choose__eyebrow-dot" />
+            WHY CHOOSE US
+          </p>
           <h2 className="why-choose__title" id="why-choose-heading">
             Why Choose EPICDRIVE
           </h2>
