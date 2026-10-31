@@ -2,12 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { FleetBannerSlider } from "@/components/homepage/FleetBannerSlider";
+import { StatisticsSection } from "@/components/homepage/StatisticsSection";
 import { TrustBanner } from "@/components/homepage/TrustBanner";
 
-const StatisticsSection = dynamic(
-  () => import("@/components/homepage/StatisticsSection").then((mod) => mod.StatisticsSection),
-  { loading: () => <DeferredSectionPlaceholder /> },
-);
 const OpenRoadSteps = dynamic(
   () => import("@/components/homepage/OpenRoadSteps").then((mod) => mod.OpenRoadSteps),
   { loading: () => <DeferredSectionPlaceholder /> },

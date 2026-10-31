@@ -14,6 +14,7 @@ import {
   type DriverPreference,
 } from "@/lib/booking";
 import { formatINR } from "@/lib/currency";
+import "./BookingForm.css";
 
 export interface BookingContext {
   vehicle?: string;
@@ -141,6 +142,12 @@ export function BookingForm({ initialContext }: BookingFormProps) {
   );
   const [customerEmail, setCustomerEmail] = useState("");
   const [additionalRequests, setAdditionalRequests] = useState("");
+  const [pickupPreference, setPickupPreference] = useState<"self" | "delivery">("self");
+  const [originalProof, setOriginalProof] = useState("");
+  const [professionalProof, setProfessionalProof] = useState("");
+  const [idProof, setIdProof] = useState("");
+  const [coupon, setCoupon] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
   const [errors, setErrors] = useState<BookingErrors>({});
   const [requestError, setRequestError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -396,303 +403,6 @@ export function BookingForm({ initialContext }: BookingFormProps) {
 
   return (
     <div className="booking-layout" ref={pageRef}>
-      <div className="booking-layout__main">
-        <form className="booking-form" method="post" noValidate onSubmit={submitBooking}>
-          <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
-            <legend className="booking-group__eyebrow">01 / VEHICLE</legend>
-            <div className="booking-group__content">
-              <label className="booking-field" htmlFor="booking-vehicle">
-                <span>Choose your vehicle</span>
-                <select
-                  aria-invalid={Boolean(errors.vehicle)}
-                  aria-describedby={errors.vehicle ? "booking-vehicle-error" : undefined}
-                  id="booking-vehicle"
-                  onChange={(event) => {
-                    setVehicleIdentifier(event.target.value);
-                    setErrors((current) => ({ ...current, vehicle: undefined }));
-                  }}
-                  ref={(element) => {
-                    fieldRefs.current.vehicle = element;
-                  }}
-                  value={vehicleIdentifier}
-                >
-                  <option value="">Select a vehicle</option>
-                  {fleetVehicles.map((vehicle) => (
-                    <option
-                      disabled={!vehicle.available}
-                      key={vehicle.id}
-                      value={vehicle.id}
-                    >
-                      {vehicle.name} — {vehicle.seats} seats, {vehicle.fuelType}
-                      {!vehicle.available ? " — UNAVAILABLE" : ""}
-                    </option>
-                  ))}
-                </select>
-                {selectedVehicle ? (
-                  <span className="booking-field__hint">
-                    {selectedVehicle.seats} seats · {selectedVehicle.fuelType} · Starting at {formatINR(selectedVehicle.pricePerDay)} / day
-                  </span>
-                ) : null}
-                {errors.vehicle ? (
-                  <span className="booking-field__error" id="booking-vehicle-error">
-                    {errors.vehicle}
-                  </span>
-                ) : null}
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
-            <legend className="booking-group__eyebrow">02 / JOURNEY</legend>
-            <div className="booking-group__content booking-group__content--two">
-              <label className="booking-field" htmlFor="booking-pickup">
-                <span>Pick-up location</span>
-                <input
-                  aria-invalid={Boolean(errors.pickup)}
-                  aria-describedby={errors.pickup ? "booking-pickup-error" : undefined}
-                  autoComplete="address-level2"
-                  id="booking-pickup"
-                  list="booking-location-options"
-                  onChange={(event) => setPickup(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.pickup = element;
-                  }}
-                  required
-                  value={pickup}
-                />
-                {errors.pickup ? <span className="booking-field__error" id="booking-pickup-error">{errors.pickup}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-return-location">
-                <span>Return location</span>
-                <input
-                  aria-invalid={Boolean(errors.returnLocation)}
-                  aria-describedby={errors.returnLocation ? "booking-return-location-error" : undefined}
-                  autoComplete="off"
-                  id="booking-return-location"
-                  list="booking-location-options"
-                  onChange={(event) => setReturnLocation(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.returnLocation = element;
-                  }}
-                  required
-                  value={returnLocation}
-                />
-                {errors.returnLocation ? <span className="booking-field__error" id="booking-return-location-error">{errors.returnLocation}</span> : null}
-              </label>
-              <datalist id="booking-location-options">
-                {DEMO_PICKUP_LOCATIONS.map((location) => (
-                  <option key={location} value={location} />
-                ))}
-              </datalist>
-              <p className="booking-group__note">
-                Suggested locations only; availability is confirmed by our team.
-              </p>
-            </div>
-          </fieldset>
-
-          <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
-            <legend className="booking-group__eyebrow">03 / DATES &amp; TIMES</legend>
-            <div className="booking-group__content booking-group__content--two">
-              <label className="booking-field" htmlFor="booking-start-date">
-                <span>Pick-up date</span>
-                <input
-                  aria-invalid={Boolean(errors.startDate)}
-                  aria-describedby={errors.startDate ? "booking-start-date-error" : undefined}
-                  id="booking-start-date"
-                  min={today || undefined}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  onFocus={() => setToday(localToday())}
-                  ref={(element) => {
-                    fieldRefs.current.startDate = element;
-                  }}
-                  required
-                  type="date"
-                  value={startDate}
-                />
-                {errors.startDate ? <span className="booking-field__error" id="booking-start-date-error">{errors.startDate}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-start-time">
-                <span>Pick-up time</span>
-                <input
-                  aria-invalid={Boolean(errors.startTime)}
-                  aria-describedby={errors.startTime ? "booking-start-time-error" : undefined}
-                  id="booking-start-time"
-                  onChange={(event) => setStartTime(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.startTime = element;
-                  }}
-                  required
-                  type="time"
-                  value={startTime}
-                />
-                {errors.startTime ? <span className="booking-field__error" id="booking-start-time-error">{errors.startTime}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-end-date">
-                <span>Return date</span>
-                <input
-                  aria-invalid={Boolean(errors.endDate)}
-                  aria-describedby={errors.endDate ? "booking-end-date-error" : undefined}
-                  id="booking-end-date"
-                  min={startDate || today || undefined}
-                  onChange={(event) => setEndDate(event.target.value)}
-                  onFocus={() => setToday(localToday())}
-                  ref={(element) => {
-                    fieldRefs.current.endDate = element;
-                  }}
-                  required
-                  type="date"
-                  value={endDate}
-                />
-                {errors.endDate ? <span className="booking-field__error" id="booking-end-date-error">{errors.endDate}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-end-time">
-                <span>Return time</span>
-                <input
-                  aria-invalid={Boolean(errors.endTime)}
-                  aria-describedby={errors.endTime ? "booking-end-time-error" : undefined}
-                  id="booking-end-time"
-                  onChange={(event) => setEndTime(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.endTime = element;
-                  }}
-                  required
-                  type="time"
-                  value={endTime}
-                />
-                {errors.endTime ? <span className="booking-field__error" id="booking-end-time-error">{errors.endTime}</span> : null}
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
-            <legend className="booking-group__eyebrow">04 / YOUR DETAILS</legend>
-            <div className="booking-group__content booking-group__content--two">
-              <label className="booking-field" htmlFor="booking-customer-name">
-                <span>Customer name</span>
-                <input
-                  aria-invalid={Boolean(errors.customerName)}
-                  aria-describedby={errors.customerName ? "booking-name-error" : undefined}
-                  autoComplete="name"
-                  id="booking-customer-name"
-                  onChange={(event) => setCustomerName(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.customerName = element;
-                  }}
-                  required
-                  value={customerName}
-                />
-                {errors.customerName ? <span className="booking-field__error" id="booking-name-error">{errors.customerName}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-customer-phone">
-                <span>Phone number</span>
-                <input
-                  aria-invalid={Boolean(errors.customerPhone)}
-                  aria-describedby={errors.customerPhone ? "booking-phone-error" : undefined}
-                  autoComplete="tel"
-                  id="booking-customer-phone"
-                  onChange={(event) => setCustomerPhone(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.customerPhone = element;
-                  }}
-                  required
-                  type="tel"
-                  value={customerPhone}
-                />
-                {errors.customerPhone ? <span className="booking-field__error" id="booking-phone-error">{errors.customerPhone}</span> : null}
-              </label>
-              <label className="booking-field" htmlFor="booking-customer-email">
-                <span>Email address</span>
-                <input
-                  aria-invalid={Boolean(errors.customerEmail)}
-                  aria-describedby={errors.customerEmail ? "booking-email-error" : undefined}
-                  autoComplete="email"
-                  id="booking-customer-email"
-                  onChange={(event) => setCustomerEmail(event.target.value)}
-                  ref={(element) => {
-                    fieldRefs.current.customerEmail = element;
-                  }}
-                  required
-                  type="email"
-                  value={customerEmail}
-                />
-                {errors.customerEmail ? <span className="booking-field__error" id="booking-email-error">{errors.customerEmail}</span> : null}
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset className="booking-group" data-booking-group disabled={isSubmitting}>
-            <legend className="booking-group__eyebrow">05 / PREFERENCES</legend>
-            <div className="booking-group__content">
-              <fieldset className="booking-driver">
-                <legend>Rental type</legend>
-                <label>
-                  <input
-                    checked={driver === "self-drive"}
-                    name="booking-driver"
-                    onChange={() => setDriver("self-drive")}
-                    type="radio"
-                  />
-                  Self-drive
-                </label>
-                <label>
-                  <input
-                    checked={driver === "chauffeur"}
-                    name="booking-driver"
-                    onChange={() => setDriver("chauffeur")}
-                    type="radio"
-                  />
-                  With driver
-                </label>
-              </fieldset>
-              <label className="booking-round-trip">
-                <span>
-                  <strong>Round trip</strong>
-                  <small>Return the vehicle to the pick-up location.</small>
-                </span>
-                <input
-                  checked={roundTrip}
-                  onChange={(event) => setRoundTrip(event.target.checked)}
-                  type="checkbox"
-                />
-                <span aria-hidden="true" />
-              </label>
-              <label className="booking-field" htmlFor="booking-additional-requests">
-                <span>Additional requests <span className="booking-field__hint">(optional)</span></span>
-                <textarea
-                  className="booking-field__textarea"
-                  id="booking-additional-requests"
-                  maxLength={1000}
-                  onChange={(event) => setAdditionalRequests(event.target.value)}
-                  rows={4}
-                  value={additionalRequests}
-                />
-              </label>
-            </div>
-          </fieldset>
-
-          {requestError ? (
-            <p className="booking-request-error" role="alert">
-              {requestError}
-            </p>
-          ) : null}
-          <div className="booking-form__actions">
-            <Button
-              className="booking-form__submit"
-              disabled={isSubmitting}
-              size="lg"
-              type="submit"
-            >
-              {isSubmitting ? "Submitting…" : "Confirm Booking"}
-              {!isSubmitting ? <ArrowUpRight aria-hidden="true" size={17} /> : null}
-            </Button>
-            <p>
-              Your estimated price is based on the selected vehicle and rental
-              duration. No taxes or additional charges are included.
-            </p>
-          </div>
-        </form>
-      </div>
-
       <div data-booking-summary>
         <BookingSummary
           driver={driver}
@@ -708,6 +418,314 @@ export function BookingForm({ initialContext }: BookingFormProps) {
           vehicle={selectedVehicle}
         />
       </div>
+
+      <div className="booking-layout__main">
+        <form
+          className="booking-form"
+          id="booking-form"
+          method="post"
+          noValidate
+          onSubmit={submitBooking}
+        >
+          {/* A. TRIP TIMELINE */}
+          <fieldset
+            className="booking-group"
+            data-booking-group
+            disabled={isSubmitting}
+          >
+            <legend className="booking-group__eyebrow">
+              <span className="step-number">1</span> TRIP TIMELINE
+              <small>{pickup || "Location"} - {returnLocation || "Location"}</small>
+            </legend>
+            <div className="booking-group__content">
+              <div className="timeline-grid">
+                <div className="timeline-section">
+                  <label className="booking-field" htmlFor="booking-start-date">
+                    <span>PICKUP</span>
+                    <div className="field-with-sub">
+                      <input
+                        aria-invalid={Boolean(errors.startDate)}
+                        id="booking-start-date"
+                        min={today || undefined}
+                        onChange={(event) => setStartDate(event.target.value)}
+                        onFocus={() => setToday(localToday())}
+                        ref={(element) => {
+                          fieldRefs.current.startDate = element;
+                        }}
+                        required
+                        type="date"
+                        value={startDate}
+                      />
+                      <input
+                        aria-invalid={Boolean(errors.startTime)}
+                        id="booking-start-time"
+                        onChange={(event) => setStartTime(event.target.value)}
+                        ref={(element) => {
+                          fieldRefs.current.startTime = element;
+                        }}
+                        required
+                        type="time"
+                        value={startTime}
+                      />
+                    </div>
+                    {errors.startDate || errors.startTime ? (
+                      <span className="booking-field__error">
+                        {errors.startDate || errors.startTime}
+                      </span>
+                    ) : (
+                      <span className="field-sub-label">
+                        {startDate ? formatDateTime(`${startDate}T${startTime}`) : "Select date & time"}
+                      </span>
+                    )}
+                  </label>
+                </div>
+
+                <div className="timeline-connector">
+                  →
+                </div>
+
+                <div className="timeline-section">
+                  <label className="booking-field" htmlFor="booking-end-date">
+                    <span>RETURN</span>
+                    <div className="field-with-sub">
+                      <input
+                        aria-invalid={Boolean(errors.endDate)}
+                        id="booking-end-date"
+                        min={startDate || today || undefined}
+                        onChange={(event) => setEndDate(event.target.value)}
+                        onFocus={() => setToday(localToday())}
+                        ref={(element) => {
+                          fieldRefs.current.endDate = element;
+                        }}
+                        required
+                        type="date"
+                        value={endDate}
+                      />
+                      <input
+                        aria-invalid={Boolean(errors.endTime)}
+                        id="booking-end-time"
+                        onChange={(event) => setEndTime(event.target.value)}
+                        ref={(element) => {
+                          fieldRefs.current.endTime = element;
+                        }}
+                        required
+                        type="time"
+                        value={endTime}
+                      />
+                    </div>
+                    {errors.endDate || errors.endTime ? (
+                      <span className="booking-field__error">
+                        {errors.endDate || errors.endTime}
+                      </span>
+                    ) : (
+                      <span className="field-sub-label">
+                        {endDate ? formatDateTime(`${endDate}T${endTime}`) : "Select date & time"}
+                      </span>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* B. PICKUP PREFERENCE */}
+          <fieldset
+            className="booking-group"
+            data-booking-group
+            disabled={isSubmitting}
+          >
+            <legend className="booking-group__eyebrow">
+              <span className="step-number">2</span> PICKUP PREFERENCE
+            </legend>
+            <div className="booking-group__content">
+              <div className="pickup-preference-grid">
+                <label className={`preference-card ${pickupPreference === "self" ? "is-selected" : ""}`}>
+                  <input
+                    checked={pickupPreference === "self"}
+                    name="pickup-preference"
+                    onChange={() => setPickupPreference("self")}
+                    type="radio"
+                  />
+                  <div className="preference-info">
+                    <strong>Self pickup</strong>
+                    <small>Collect the car from Madurai. No pickup charges.</small>
+                  </div>
+                </label>
+                <label className={`preference-card ${pickupPreference === "delivery" ? "is-selected" : ""}`}>
+                  <input
+                    checked={pickupPreference === "delivery"}
+                    name="pickup-preference"
+                    onChange={() => setPickupPreference("delivery")}
+                    type="radio"
+                  />
+                  <div className="preference-info">
+                    <strong>Delivery</strong>
+                    <small>Get the car delivered to your location. Delivery fee applies.</small>
+                  </div>
+                </label>
+              </div>
+              <div className="hub-info">
+                <span>Pickup hub: <strong className="hub-name">Madurai - Madurai</strong></span>
+                <p>(Please arrive 10-15 minutes before your pickup time.)</p>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* C. DOCUMENTS & NOTES */}
+          <fieldset
+            className="booking-group"
+            data-booking-group
+            disabled={isSubmitting}
+          >
+            <legend className="booking-group__eyebrow">
+              <span className="step-number">3</span> DOCUMENTS &amp; NOTES
+            </legend>
+            <div className="booking-group__content">
+              <div className="docs-grid">
+                <label className="booking-field" htmlFor="booking-original-proof">
+                  <span>ORIGINAL PROOF *</span>
+                  <select
+                    id="booking-original-proof"
+                    onChange={(event) => setOriginalProof(event.target.value)}
+                    value={originalProof}
+                  >
+                    <option value="">Select Original Proof</option>
+                    <option>Driving licence</option>
+                    <option>Passport</option>
+                  </select>
+                </label>
+                <label className="booking-field" htmlFor="booking-professional-proof">
+                  <span>PROFESSIONAL PROOF</span>
+                  <select
+                    id="booking-professional-proof"
+                    onChange={(event) => setProfessionalProof(event.target.value)}
+                    value={professionalProof}
+                  >
+                    <option value="">Select Professional Proof</option>
+                    <option>Company ID</option>
+                    <option>Business card</option>
+                    <option>Not applicable</option>
+                  </select>
+                </label>
+                <label className="booking-field" htmlFor="booking-id-proof">
+                  <span>ID PROOF</span>
+                  <select
+                    id="booking-id-proof"
+                    onChange={(event) => setIdProof(event.target.value)}
+                    value={idProof}
+                  >
+                    <option value="">Select ID Proof</option>
+                    <option>Aadhaar card</option>
+                    <option>Passport</option>
+                    <option>Voter ID</option>
+                  </select>
+                </label>
+              </div>
+              <label className="booking-field" htmlFor="booking-additional-requests">
+                <span>SPECIAL INSTRUCTIONS <span className="booking-field__hint">(optional)</span></span>
+                <textarea
+                  className="booking-field__textarea"
+                  id="booking-additional-requests"
+                  maxLength={1000}
+                  onChange={(event) => setAdditionalRequests(event.target.value)}
+                  placeholder="Share any special requests for pickup, accessories, or notes for our team."
+                  rows={4}
+                  value={additionalRequests}
+                />
+              </label>
+            </div>
+          </fieldset>
+        </form>
+      </div>
+
+      <aside className="booking-payment-stack" aria-label="Payment details">
+        {/* A. COUPON */}
+        <section className="booking-side-card booking-side-card--coupon">
+          <div className="booking-side-card__heading">
+            <div className="icon-badge"><Check size={14} /></div>
+            <div>
+              <span>COUPON</span>
+              <small>Apply a coupon to save more</small>
+            </div>
+          </div>
+          <div className="booking-coupon-row">
+            <input
+              aria-label="Coupon code"
+              onChange={(event) => setCoupon(event.target.value)}
+              placeholder="Select Your Coupon code"
+              value={coupon}
+            />
+            <button
+              onClick={() =>
+                setCouponMessage(
+                  coupon.trim()
+                    ? "Coupon will be checked at confirmation."
+                    : "Enter a coupon code first."
+                )
+              }
+              type="button"
+            >
+              ›
+            </button>
+          </div>
+          {couponMessage ? (
+            <p className="booking-side-card__message" role="status">
+              {couponMessage}
+            </p>
+          ) : null}
+        </section>
+
+        {/* B. FARE SUMMARY */}
+        <section className="booking-side-card booking-side-card--fare">
+          <div className="booking-side-card__heading">
+            <div className="icon-badge"><Check size={14} /></div>
+            <div>
+              <span>FARE SUMMARY</span>
+              <small>Transparent breakup of your rental charges.</small>
+            </div>
+          </div>
+          <dl className="booking-fare-list">
+            <div>
+              <dt>Base tariff</dt>
+              <dd>{estimatedTotal === null ? "—" : formatINR(estimatedTotal)}</dd>
+            </div>
+            <div>
+              <dt>Pickup Charge <small>(SELF PICKUP)</small></dt>
+              <dd className="free">Free</dd>
+            </div>
+            <div>
+              <dt>Drop Charge <small>(SELF DROP)</small></dt>
+              <dd className="free">Free</dd>
+            </div>
+            <div>
+              <dt>Security deposit</dt>
+              <dd>₹0.00</dd>
+            </div>
+          </dl>
+          <div className="booking-fare-total">
+            <span>Total payable</span>
+            <strong>{estimatedTotal === null ? "—" : formatINR(estimatedTotal)}</strong>
+          </div>
+          <p className="fare-note">Taxes are accrued but included. Your booking is confirmed instantly after successful payment.</p>
+        </section>
+
+        {/* C. PAYMENT ACTIONS */}
+        <section className="booking-side-card booking-side-card--actions">
+          <button className="pay-now-button" type="button">
+            PAY ₹1,000.00 NOW <small>Balances on pickup</small>
+          </button>
+          <Button
+            className="booking-proceed-button"
+            form="booking-form"
+            loading={isSubmitting}
+            size="lg"
+            type="submit"
+          >
+            PROCEED TO PAY {estimatedTotal ? formatINR(estimatedTotal) : ""}
+          </Button>
+          <p className="payment-terms">By continuing, you agree to our rental terms, deposit policy and cancellation rules.</p>
+        </section>
+      </aside>
     </div>
   );
 }

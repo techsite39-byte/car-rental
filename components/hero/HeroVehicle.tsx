@@ -26,7 +26,7 @@ const categoryMotion: Record<HeroCategory, Variants> = {
   hatchback: { enter: { opacity: 0, x: 60 }, visible: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 32 } },
 };
 
-const categoryTransition = { duration: 0.88, ease: [0.2, 0.82, 0.25, 1] as const };
+const categoryTransition = { duration: 0.45, ease: [0.2, 0.82, 0.25, 1] as const };
 
 function VehicleImageFrame({ vehicle, reduceMotion }: { vehicle: HeroVehicleData; reduceMotion: boolean }) {
   const image = getLocalVehicleImage(vehicle) || categoryVehicleImages[vehicle.category];

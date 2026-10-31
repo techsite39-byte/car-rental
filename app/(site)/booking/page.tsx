@@ -23,16 +23,9 @@ export default function BookingPage({
     <main className="booking-page">
       <div className="site-container">
         <header className="booking-page__header" data-booking-reveal>
-          <p className="booking-page__eyebrow">BOOK YOUR JOURNEY</p>
-          <h1>
-            Your next
-            <br />
-            journey starts here.
-          </h1>
-          <p className="booking-page__intro">
-            Choose your vehicle, dates, and preferences. Our team will confirm
-            the final details with you.
-          </p>
+          <p className="booking-page__eyebrow">BOOKING SUMMARY</p>
+          <h1>Trip overview &amp; payment</h1>
+          <p className="booking-page__intro">Review your vehicle, journey details, and payment information before you confirm.</p>
         </header>
         <Suspense
           fallback={

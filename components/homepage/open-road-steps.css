@@ -7,6 +7,13 @@
     var(--background);
 }
 
+/* The fleet statistics section now renders immediately, so the next section
+ * needs only a normal section transition instead of its full standalone
+ * showcase spacing at this boundary. */
+.home-statistics + .open-road-steps {
+  padding-top: clamp(3rem, 5vw, 5rem);
+}
+
 .open-road-steps__header {
   display: flex;
   align-items: end;

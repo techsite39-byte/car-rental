@@ -38,7 +38,7 @@ export function Navbar() {
           sequence.parentElement?.classList.contains("pin-spacer"),
         );
 
-      if (!pinsReady && performance.now() - startedAt < 5000) {
+      if (!pinsReady && performance.now() - startedAt < 2000) {
         frame = window.requestAnimationFrame(scrollToAnchor);
         return;
       }

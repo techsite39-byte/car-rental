@@ -496,6 +496,22 @@ export function HomeBookingSection() {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const pickup = params.get("pickup") ?? "";
+    const [hub, ...cityParts] = pickup.split(",");
+    const restoredCity = cityParts.join(",").trim();
+
+    if (params.get("phone")) setPhone((params.get("phone") ?? "").replace(/^\\+91/, ""));
+    if (restoredCity) setCity(restoredCity);
+    if (hub?.trim()) setPickupHub(hub.trim());
+    if (params.get("pickupDate")) setPickupDate(params.get("pickupDate") ?? "");
+    if (params.get("pickupTime")) setPickupTime(params.get("pickupTime") ?? "");
+    if (params.get("returnDate")) setDropoffDate(params.get("returnDate") ?? "");
+    if (params.get("returnTime")) setDropoffTime(params.get("returnTime") ?? "");
+    if (params.get("dealType") === "Week Day Deals") setDeal("weekday");
+  }, []);
+
+  useEffect(() => {
     if (isPromotionPaused) return;
 
     const interval = window.setInterval(() => {
@@ -584,6 +600,9 @@ export function HomeBookingSection() {
     if (trimmedCity.length < 2 || trimmedCity.length > 120) {
       nextErrors.city = "Enter a city (2–120 characters).";
     }
+    if (!DEMO_PICKUP_LOCATIONS.some((location) => location.toLowerCase() === trimmedCity.toLowerCase())) {
+      nextErrors.city = "Choose a supported pickup city.";
+    }
     if (
       trimmedPickupHub.length < 2 ||
       trimmedPickupHub.length > 120 ||
@@ -621,7 +640,7 @@ export function HomeBookingSection() {
       phone: `+91${phoneDigits}`,
       dealType: selectedDeal.label,
     });
-    router.push(`/booking?${query.toString()}`);
+    router.push(`/cars-rental?${query.toString()}`);
   }
 
   return (

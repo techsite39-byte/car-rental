@@ -4,6 +4,7 @@ const routes = {
   deals: "/deals",
   about: "/about",
   booking: "/booking",
+  carsRental: "/cars-rental",
   contact: "/contact",
   privacy: "/privacy",
   terms: "/terms",
@@ -26,8 +27,8 @@ const contact = {
 
 const socialLinks = [
   { label: "WhatsApp", href: contact.whatsapp },
-  { label: "Epicdrive.in", href: contact.website },
-  { label: "@Epicdrive.in", href: contact.instagram },
+  { label: "Instagram", href: contact.instagram },
+  { label: "Website", href: contact.website },
 ] as const;
 
 export const siteConfig = {
