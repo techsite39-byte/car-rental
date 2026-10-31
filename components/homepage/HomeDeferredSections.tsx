@@ -9,10 +9,6 @@ const OpenRoadSteps = dynamic(
   () => import("@/components/homepage/OpenRoadSteps").then((mod) => mod.OpenRoadSteps),
   { loading: () => <DeferredSectionPlaceholder /> },
 );
-const Hero = dynamic(
-  () => import("@/components/hero/Hero").then((mod) => mod.Hero),
-  { loading: () => <DeferredSectionPlaceholder /> },
-);
 const FleetSection = dynamic(
   () => import("@/components/fleet/FleetSection").then((mod) => mod.FleetSection),
   { loading: () => <DeferredSectionPlaceholder /> },
@@ -31,7 +27,6 @@ export function HomeDeferredSections() {
     <>
       <StatisticsSection />
       <OpenRoadSteps />
-      <Hero />
       <FleetBannerSlider />
       <FleetSection />
       <TrustBanner />
