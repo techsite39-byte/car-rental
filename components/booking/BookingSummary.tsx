@@ -13,8 +13,8 @@ interface BookingSummaryProps {
   startTime: string;
   endDate: string;
   endTime: string;
-  driver: DriverPreference;
-  roundTrip: boolean;
+  driver?: DriverPreference;
+  roundTrip?: boolean;
   rentalDays: number | null;
   estimatedTotal: number | null;
 }
@@ -38,9 +38,11 @@ export function BookingSummary({
   startTime,
   endDate,
   endTime,
+  driver,
+  roundTrip,
   rentalDays,
   estimatedTotal,
-}: Omit<BookingSummaryProps, "driver" | "roundTrip">) {
+}: BookingSummaryProps) {
   const [failedImage, setFailedImage] = useState(false);
   const image = failedImage
     ? "/images/vehicles/vehicle-photo-unavailable.svg"
@@ -56,6 +58,8 @@ export function BookingSummary({
             <span className="tag--red">{vehicle?.type || "Premium"}</span>
             <span>{pickup || "Location"} - {returnLocation || "Location"}</span>
             <span>{rentalDays ? `${rentalDays} Day Trip` : "—"}</span>
+            {driver ? <span>{driver === "chauffeur" ? "Chauffeur" : "Self-Drive"}</span> : null}
+            {roundTrip !== undefined ? <span>{roundTrip ? "Round Trip" : "One Way"}</span> : null}
           </div>
           
           <div className="booking-summary__date-grid">

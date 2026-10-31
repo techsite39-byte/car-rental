@@ -33,6 +33,7 @@ export function Button(props: ButtonProps) {
       variant = "primary",
       size = "md",
       loading: _loading,
+      onClick,
       ...linkProps
     } = props as ButtonLinkProps;
     return (
@@ -50,7 +51,7 @@ export function Button(props: ButtonProps) {
             e.preventDefault();
             return;
           }
-          props.onClick?.(e);
+          onClick?.(e);
         }}
         {...linkProps}
       >
