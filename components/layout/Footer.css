@@ -100,9 +100,14 @@
   box-shadow: 0 5px 12px rgba(229, 9, 20, 0.35);
 }
 
+.footer-social-link:focus-visible {
+  outline: 3px solid rgb(229 9 20 / 28%);
+  outline-offset: 3px;
+}
+
 .footer-social-link svg {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 /* --- Columns 2 & 3: Explore & Company --- */

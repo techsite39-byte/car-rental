@@ -102,22 +102,22 @@ export function Footer() {
             Premium, well-maintained self-drive cars with transparent pricing and doorstep delivery.
           </p>
           <nav aria-label="Social media" className="footer-socials">
-            <a aria-label="X (Twitter)" className="footer-social-link" href="#" rel="noopener noreferrer">
+            <a aria-label="X (Twitter)" className="footer-social-link" href="#" rel="noopener noreferrer" title="X (Twitter)">
               <XIcon />
             </a>
-            <a aria-label="Facebook" className="footer-social-link" href="#" rel="noopener noreferrer">
+            <a aria-label="Facebook" className="footer-social-link" href="#" rel="noopener noreferrer" title="Facebook">
               <FacebookIcon />
             </a>
-            <a aria-label="Instagram" className="footer-social-link" href={siteConfig.contact.instagram} rel="noopener noreferrer" target="_blank">
+            <a aria-label="Instagram" className="footer-social-link" href={siteConfig.contact.instagram} rel="noopener noreferrer" target="_blank" title="Instagram">
               <InstagramIcon />
             </a>
-            <a aria-label="YouTube" className="footer-social-link" href="#" rel="noopener noreferrer">
+            <a aria-label="YouTube" className="footer-social-link" href="#" rel="noopener noreferrer" title="YouTube">
               <YoutubeIcon />
             </a>
-            <a aria-label="LinkedIn" className="footer-social-link" href="#" rel="noopener noreferrer">
+            <a aria-label="LinkedIn" className="footer-social-link" href="#" rel="noopener noreferrer" title="LinkedIn">
               <LinkedinIcon />
             </a>
-            <a aria-label="Pinterest" className="footer-social-link" href="#" rel="noopener noreferrer">
+            <a aria-label="Pinterest" className="footer-social-link" href="#" rel="noopener noreferrer" title="Pinterest">
               <PinterestIcon />
             </a>
           </nav>
