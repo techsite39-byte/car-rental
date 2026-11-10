@@ -45,8 +45,8 @@ export function useFleetCollection(
         const response = await fetch(
           includeHidden ? "/api/fleet?includeHidden=true" : "/api/fleet",
           {
-          cache: "no-store",
-          signal: controller.signal,
+            cache: "force-cache",
+            signal: controller.signal,
           },
         );
         const payload: unknown = await response.json().catch(() => null);

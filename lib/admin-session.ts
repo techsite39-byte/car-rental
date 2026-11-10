@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 export const ADMIN_SESSION_COOKIE = "epicdrive_admin_session";
 export const ADMIN_SESSION_MAX_AGE = 60 * 60 * 12;
+export const ADMIN_SESSION_REMEMBER_MAX_AGE = 60 * 60 * 24 * 30;
 
 function sessionSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET?.trim();
@@ -36,10 +37,7 @@ export function verifyAdminSessionToken(token: string | undefined, now = Date.no
 }
 
 export async function hasAdminSession() {
-  if (process.env.NODE_ENV === "development") return true;
-
-  // TODO: Complete production auth hardening before configuring these secrets.
-  if (!process.env.ADMIN_PASSWORD?.trim() || !sessionSecret()) return false;
+  if (!sessionSecret()) return false;
 
   const cookieStore = await cookies();
   return verifyAdminSessionToken(
@@ -47,12 +45,12 @@ export async function hasAdminSession() {
   );
 }
 
-export function adminSessionCookieOptions() {
+export function adminSessionCookieOptions(remember = false) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict" as const,
     path: "/",
-    maxAge: ADMIN_SESSION_MAX_AGE,
+    maxAge: remember ? ADMIN_SESSION_REMEMBER_MAX_AGE : ADMIN_SESSION_MAX_AGE,
   };
 }

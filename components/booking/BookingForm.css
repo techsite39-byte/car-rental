@@ -121,6 +121,58 @@
   color: #fff;
 }
 
+.booking-summary__contact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.booking-summary__contact-card {
+  display: flex;
+  min-width: 0;
+  min-height: 4.75rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(32, 40, 59, 0.1);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.78);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.booking-summary__contact-card:hover {
+  border-color: rgba(242, 29, 43, 0.32);
+  background: #fff;
+}
+
+.booking-summary__contact-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.booking-summary__contact-label svg {
+  flex: 0 0 auto;
+  color: var(--epic-red);
+}
+
+.booking-summary__contact-card strong {
+  min-width: 0;
+  color: var(--dark-navy);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .booking-summary__date-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -312,35 +364,6 @@
   margin-top: 0.25rem;
 }
 
-.booking-coupon-row {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.booking-coupon-row input {
-  flex: 1;
-  padding: 0.875rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  font-size: 0.875rem;
-  background: #f8fafc;
-}
-
-.booking-coupon-row button {
-  background: var(--dark-navy);
-  color: #fff;
-  border: none;
-  border-radius: 0.75rem;
-  width: 3rem;
-  font-size: 1.25rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.booking-coupon-row button:hover {
-  background: var(--epic-red);
-}
-
 /* Fare Summary */
 .booking-side-card--fare {
   border: 2px solid var(--dark-navy);
@@ -406,6 +429,19 @@
   font-weight: 900;
 }
 
+.booking-fare-total--secondary {
+  padding-top: 0.7rem;
+}
+
+.booking-fare-total--secondary span,
+.booking-fare-total--secondary strong {
+  font-size: 0.85rem;
+}
+
+.booking-fare-total--secondary strong {
+  color: var(--dark-navy);
+}
+
 /* Payment Actions */
 .booking-side-card--actions {
   display: flex;
@@ -442,6 +478,37 @@
   line-height: 1.5;
 }
 
+.booking-payment-error {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid #f3b2b4;
+  border-radius: 0.75rem;
+  background: #fff4f4;
+  color: #a31623;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.booking-confirmation__print {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--dark-navy);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.booking-confirmation__print:hover {
+  border-color: var(--epic-red);
+  color: var(--epic-red);
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .booking-layout {
@@ -460,6 +527,10 @@
   
   .booking-summary__tags {
     justify-content: center;
+  }
+
+  .booking-summary__contact {
+    text-align: left;
   }
   
   .booking-summary__price {
@@ -485,6 +556,10 @@
   }
   
   .docs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-summary__contact {
     grid-template-columns: 1fr;
   }
   

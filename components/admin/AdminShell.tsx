@@ -54,6 +54,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const [access, setAccess] = useState<"checking" | "locked" | "open">("checking");
   const [authError, setAuthError] = useState("");
   const [authPending, setAuthPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const title =
     pageTitles[pathname] ??
     (pathname.endsWith("/edit") ? "Edit vehicle" : "Dashboard overview");
@@ -88,12 +90,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
     if (authPending) return;
     setAuthPending(true);
     setAuthError("");
-    const password = new FormData(event.currentTarget).get("password");
+    const form = new FormData(event.currentTarget);
+    const email = form.get("email");
+    const password = form.get("password");
     try {
       const response = await fetch("/api/admin/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password, remember }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.authenticated) {
@@ -113,7 +117,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     setDrawerOpen(false);
   }
 
-  if (access !== "open") {
+  if (access !== "open" && pathname !== "/admin/forgot-password") {
     return (
       <div className="admin-app">
         <main className="admin-auth-screen">
@@ -125,21 +129,34 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <h1>Admin access</h1>
               <p>Sign in to manage the shared vehicle fleet.</p>
               <form onSubmit={signIn}>
+                <label className="admin-field" htmlFor="admin-email">
+                  <span>Email</span>
+                  <input autoComplete="username" defaultValue="yourssanjay63@gmail.com" id="admin-email" name="email" required type="email" />
+                </label>
                 <label className="admin-field" htmlFor="admin-password">
                   <span>Password</span>
-                  <input
-                    autoComplete="current-password"
-                    id="admin-password"
-                    name="password"
-                    required
-                    type="password"
-                  />
+                  <span className="admin-password-field">
+                    <input autoComplete="current-password" id="admin-password" name="password" required type={showPassword ? "text" : "password"} />
+                    <button aria-label={showPassword ? "Hide password" : "Show password"} className="admin-password-toggle" onClick={() => setShowPassword((visible) => !visible)} type="button">
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </span>
+                </label>
+                <label className="admin-remember">
+                  <input checked={remember} onChange={(event) => setRemember(event.target.checked)} type="checkbox" />
+                  <span>Remember me</span>
                 </label>
                 {authError ? <p className="admin-error" role="alert">{authError}</p> : null}
                 <button className="admin-button admin-button--primary" disabled={authPending} type="submit">
                   {authPending ? "Signing in…" : "Sign in"}
                 </button>
               </form>
+              <div className="admin-auth-links">
+                <Link href="/admin/forgot-password">Forgot password?</Link>
+                <button className="admin-google-button" onClick={() => setAuthError("Google sign-in is unavailable until GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are configured.")} type="button">
+                  Continue with Google
+                </button>
+              </div>
               <Link href="/">Back to website</Link>
             </section>
           )}

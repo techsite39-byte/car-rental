@@ -2,7 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Check } from "lucide-react";
+import Image from "next/image";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Clock3,
+  Fuel,
+  MapPin,
+  Printer,
+  Settings2,
+  UsersRound,
+} from "lucide-react";
 import { gsap } from "gsap";
 import { BookingSummary } from "@/components/booking/BookingSummary";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +38,7 @@ export interface BookingContext {
   endTime?: string;
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
   driver?: string;
   roundTrip?: string;
 }
@@ -50,19 +63,54 @@ type BookingErrors = Partial<Record<BookingField, string>>;
 
 interface SavedBooking {
   bookingReference: string;
+  bookingId?: string;
   vehicleName: string;
+  vehicleId?: string;
+  vehicleDetails?: { name?: string; model?: string; image?: string; registrationNumber?: string };
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   pickupDateTime: string;
   returnDateTime: string;
   estimatedTotal: number;
+  totalAmount?: number;
+  baseTariff?: number;
+  pickupCharges?: number;
+  dropCharges?: number;
+  securityDeposit?: number;
+  advanceAmount?: number;
+  remainingAmount?: number;
+  pickupLocation?: string;
+  returnLocation?: string;
+  pickupPreference?: "self" | "delivery";
+  documents?: { originalProof?: string; professionalProof?: string; idProof?: string };
+  additionalRequests?: string;
+  paymentStatus?: string;
+  whatsappStatus?: string;
 }
 
 interface BookingApiResponse {
   booking?: SavedBooking;
+  accessToken?: string;
   error?: string;
   code?: string;
 }
 
 type BookingInput = HTMLInputElement | HTMLSelectElement;
+type PaymentType = "advance" | "full";
+
+type RazorpayInstance = { open: () => void };
+type RazorpayConstructor = new (options: {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill: { name: string; contact: string; email: string };
+  handler: (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => void;
+  modal: { ondismiss: () => void };
+}) => RazorpayInstance;
 
 function localToday() {
   const date = new Date();
@@ -107,6 +155,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     key: string;
   } | null>(null);
   const submissionInProgress = useRef(false);
+  const [isVehicleSelectorOpen, setIsVehicleSelectorOpen] = useState(false);
   const [vehicleIdentifier, setVehicleIdentifier] = useState(() => {
     const initialVehicle = fleetVehicles.find(
       (vehicle) =>
@@ -115,9 +164,13 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     );
     return initialVehicle?.id ?? initialContext.vehicle ?? "";
   });
-  const [pickup, setPickup] = useState(initialContext.pickup ?? "");
+  const [pickup, setPickup] = useState(
+    initialContext.pickup?.split(",")[0]?.trim() || "Madurai",
+  );
   const [returnLocation, setReturnLocation] = useState(
-    initialContext.returnLocation ?? "",
+    initialContext.returnLocation?.split(",")[0]?.trim() ||
+      initialContext.pickup?.split(",")[0]?.trim() ||
+      "Madurai",
   );
   const [startDate, setStartDate] = useState(initialContext.startDate ?? "");
   const [startTime, setStartTime] = useState(
@@ -140,19 +193,16 @@ export function BookingForm({ initialContext }: BookingFormProps) {
   const [customerPhone, setCustomerPhone] = useState(
     initialContext.customerPhone ?? "",
   );
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [additionalRequests, setAdditionalRequests] = useState("");
+  const [customerEmail, setCustomerEmail] = useState(
+    initialContext.customerEmail ?? "",
+  );
   const [pickupPreference, setPickupPreference] = useState<"self" | "delivery">("self");
-  const [originalProof, setOriginalProof] = useState("");
-  const [professionalProof, setProfessionalProof] = useState("");
-  const [idProof, setIdProof] = useState("");
-  const [coupon, setCoupon] = useState("");
-  const [couponMessage, setCouponMessage] = useState("");
   const [errors, setErrors] = useState<BookingErrors>({});
   const [requestError, setRequestError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmation, setConfirmation] =
     useState<SavedBooking | null>(null);
+  const [paymentError, setPaymentError] = useState("");
   const [today, setToday] = useState("");
 
   const selectedVehicle = useMemo(
@@ -163,6 +213,10 @@ export function BookingForm({ initialContext }: BookingFormProps) {
           vehicle.slug === vehicleIdentifier,
       ) ?? null,
     [fleetVehicles, vehicleIdentifier],
+  );
+  const availableVehicles = useMemo(
+    () => fleetVehicles.filter((vehicle) => vehicle.available),
+    [fleetVehicles],
   );
 
   const pickupDateTime = useMemo(
@@ -220,10 +274,10 @@ export function BookingForm({ initialContext }: BookingFormProps) {
     if (firstInvalid) fieldRefs.current[firstInvalid]?.focus();
   }
 
-  async function submitBooking(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function validateAndPay(paymentType: PaymentType) {
     if (submissionInProgress.current) return;
     setRequestError("");
+    setPaymentError("");
 
     const nextErrors: BookingErrors = {};
     if (!selectedVehicle) {
@@ -296,7 +350,7 @@ export function BookingForm({ initialContext }: BookingFormProps) {
       returnDateTime: returnDateTime.toISOString(),
       rentalType: driver,
       roundTrip,
-      additionalRequests: additionalRequests.trim(),
+      pickupPreference,
     });
     let currentRequest = idempotencyRequest.current;
     if (!currentRequest || currentRequest.body !== requestBody) {
@@ -334,7 +388,104 @@ export function BookingForm({ initialContext }: BookingFormProps) {
         return;
       }
 
-      setConfirmation(payload.booking);
+      const booking = payload.booking;
+
+      if (paymentType === "advance") {
+        const paymentParams = new URLSearchParams({
+          bookingId: booking.bookingId ?? booking.bookingReference,
+          bookingReference: booking.bookingReference,
+          vehicleId: selectedVehicle.id,
+          customerName: booking.customerName ?? customerName.trim(),
+          phone: booking.customerPhone ?? customerPhone.trim(),
+          email: booking.customerEmail ?? customerEmail.trim(),
+          vehicleName: booking.vehicleDetails?.name || booking.vehicleName,
+          vehicleModel: booking.vehicleDetails?.model || selectedVehicle.model || "",
+          vehicleImage: booking.vehicleDetails?.image || selectedVehicle.image || "",
+          pickupHub: booking.pickupLocation ?? pickup.trim(),
+          pickupDateTime: booking.pickupDateTime,
+          returnDateTime: booking.returnDateTime,
+          totalAmount: String(booking.totalAmount ?? booking.estimatedTotal),
+          advanceAmount: String(booking.advanceAmount ?? 500),
+          remainingAmount: String(
+            booking.remainingAmount ??
+              Math.max((booking.totalAmount ?? booking.estimatedTotal) - 500, 0),
+          ),
+        });
+        router.push(`/payment?${paymentParams.toString()}`);
+        return;
+      }
+
+      const accessToken = payload.accessToken;
+      if (!accessToken) {
+        setPaymentError("Your booking was saved, but its secure payment session could not be created. Please retry from this page.");
+        return;
+      }
+
+      const orderResponse = await fetch("/api/bookings/payments/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": currentRequest.key },
+        body: JSON.stringify({ bookingReference: booking.bookingReference, accessToken, paymentType }),
+      });
+      const orderPayload = (await orderResponse.json().catch(() => null)) as {
+        keyId?: string;
+        orderId?: string;
+        amount?: number;
+        currency?: string;
+        error?: string;
+      } | null;
+      if (!orderResponse.ok || !orderPayload?.keyId || !orderPayload.orderId || !orderPayload.amount) {
+        setPaymentError(orderPayload?.error ?? "The payment order could not be created. No payment was taken.");
+        return;
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        const existingScript = document.querySelector<HTMLScriptElement>("script[data-razorpay-checkout]");
+        const openCheckout = () => {
+          const Razorpay = (window as Window & { Razorpay?: RazorpayConstructor }).Razorpay;
+          if (!Razorpay) {
+            reject(new Error("Payment checkout could not be loaded."));
+            return;
+          }
+          const checkout = new Razorpay({
+            key: orderPayload.keyId!,
+            amount: orderPayload.amount! * 100,
+            currency: orderPayload.currency ?? "INR",
+            name: "EPICDRIVE Car Rentals",
+            description: "Booking payment",
+            order_id: orderPayload.orderId!,
+            prefill: { name: customerName.trim(), contact: customerPhone.trim(), email: customerEmail.trim() },
+            modal: { ondismiss: resolve },
+            handler: (gatewayResponse) => {
+              void fetch("/api/bookings/payments/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...gatewayResponse, bookingReference: booking.bookingReference, accessToken }),
+              }).then(async (response) => {
+                const verified = (await response.json().catch(() => null)) as { booking?: SavedBooking; error?: string } | null;
+                if (!response.ok || !verified?.booking) {
+                  setPaymentError(verified?.error ?? "Payment verification failed. Please contact support before trying again.");
+                  return;
+                }
+                setConfirmation(verified.booking);
+              }).catch(() => setPaymentError("Payment verification could not be completed. Please contact support."))
+                .finally(resolve);
+            },
+          });
+          checkout.open();
+        };
+        if (existingScript) {
+          if ((window as Window & { Razorpay?: RazorpayConstructor }).Razorpay) openCheckout();
+          else existingScript.addEventListener("load", openCheckout, { once: true });
+        } else {
+          const script = document.createElement("script");
+          script.async = true;
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.dataset.razorpayCheckout = "true";
+          script.onload = openCheckout;
+          script.onerror = () => reject(new Error("Payment checkout could not be loaded."));
+          document.body.appendChild(script);
+        }
+      });
     } catch {
       setRequestError(
         "We could not reach the booking service. Your booking was not saved. Please try again.",
@@ -343,6 +494,11 @@ export function BookingForm({ initialContext }: BookingFormProps) {
       submissionInProgress.current = false;
       setIsSubmitting(false);
     }
+  }
+
+  async function submitBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await validateAndPay("full");
   }
 
   if (confirmation) {
@@ -372,6 +528,10 @@ export function BookingForm({ initialContext }: BookingFormProps) {
             <dt>Vehicle</dt>
             <dd>{confirmation.vehicleName}</dd>
           </div>
+          <div><dt>Customer</dt><dd>{confirmation.customerName || "—"}</dd></div>
+          <div><dt>Phone</dt><dd>{confirmation.customerPhone || "—"}</dd></div>
+          <div><dt>Pickup hub</dt><dd>{confirmation.pickupLocation || "—"}</dd></div>
+          <div><dt>Pickup preference</dt><dd>{confirmation.pickupPreference === "delivery" ? "Delivery" : "Self pickup"}</dd></div>
           <div>
             <dt>Pick-up</dt>
             <dd>{formatDateTime(confirmation.pickupDateTime)}</dd>
@@ -384,10 +544,25 @@ export function BookingForm({ initialContext }: BookingFormProps) {
             <dt>Estimated total</dt>
             <dd>{formatINR(confirmation.estimatedTotal)}</dd>
           </div>
+          <div>
+            <dt>Advance paid</dt>
+            <dd>{formatINR(confirmation.advanceAmount ?? 500)}</dd>
+          </div>
+          <div>
+            <dt>Remaining balance</dt>
+            <dd>{formatINR(confirmation.remainingAmount ?? Math.max(confirmation.estimatedTotal - 500, 0))}</dd>
+          </div>
+          <div>
+            <dt>Payment status</dt>
+            <dd>{confirmation.paymentStatus ?? "partial"}</dd>
+          </div>
         </dl>
         <p className="booking-confirmation__message">
-          Our team will contact you shortly to confirm the final details.
+          WhatsApp confirmation: {confirmation.whatsappStatus === "sent" ? "sent" : confirmation.whatsappStatus === "not_configured" ? "not configured" : confirmation.whatsappStatus ?? "pending"}.
         </p>
+        <button className="booking-confirmation__print" onClick={() => window.print()} type="button">
+          <Printer aria-hidden="true" size={17} /> Print booking
+        </button>
         <Button
           onClick={() => router.push("/")}
           size="lg"
@@ -415,6 +590,9 @@ export function BookingForm({ initialContext }: BookingFormProps) {
           roundTrip={roundTrip}
           startDate={startDate}
           startTime={startTime}
+          customerName={customerName}
+          customerPhone={customerPhone}
+          customerEmail={customerEmail}
           vehicle={selectedVehicle}
         />
       </div>
@@ -571,111 +749,12 @@ export function BookingForm({ initialContext }: BookingFormProps) {
             </div>
           </fieldset>
 
-          {/* C. DOCUMENTS & NOTES */}
-          <fieldset
-            className="booking-group"
-            data-booking-group
-            disabled={isSubmitting}
-          >
-            <legend className="booking-group__eyebrow">
-              <span className="step-number">3</span> DOCUMENTS &amp; NOTES
-            </legend>
-            <div className="booking-group__content">
-              <div className="docs-grid">
-                <label className="booking-field" htmlFor="booking-original-proof">
-                  <span>ORIGINAL PROOF *</span>
-                  <select
-                    id="booking-original-proof"
-                    onChange={(event) => setOriginalProof(event.target.value)}
-                    value={originalProof}
-                  >
-                    <option value="">Select Original Proof</option>
-                    <option>Driving licence</option>
-                    <option>Passport</option>
-                  </select>
-                </label>
-                <label className="booking-field" htmlFor="booking-professional-proof">
-                  <span>PROFESSIONAL PROOF</span>
-                  <select
-                    id="booking-professional-proof"
-                    onChange={(event) => setProfessionalProof(event.target.value)}
-                    value={professionalProof}
-                  >
-                    <option value="">Select Professional Proof</option>
-                    <option>Company ID</option>
-                    <option>Business card</option>
-                    <option>Not applicable</option>
-                  </select>
-                </label>
-                <label className="booking-field" htmlFor="booking-id-proof">
-                  <span>ID PROOF</span>
-                  <select
-                    id="booking-id-proof"
-                    onChange={(event) => setIdProof(event.target.value)}
-                    value={idProof}
-                  >
-                    <option value="">Select ID Proof</option>
-                    <option>Aadhaar card</option>
-                    <option>Passport</option>
-                    <option>Voter ID</option>
-                  </select>
-                </label>
-              </div>
-              <label className="booking-field" htmlFor="booking-additional-requests">
-                <span>SPECIAL INSTRUCTIONS <span className="booking-field__hint">(optional)</span></span>
-                <textarea
-                  className="booking-field__textarea"
-                  id="booking-additional-requests"
-                  maxLength={1000}
-                  onChange={(event) => setAdditionalRequests(event.target.value)}
-                  placeholder="Share any special requests for pickup, accessories, or notes for our team."
-                  rows={4}
-                  value={additionalRequests}
-                />
-              </label>
-            </div>
-          </fieldset>
         </form>
       </div>
 
       <aside className="booking-payment-stack" aria-label="Payment details">
-        {/* A. COUPON */}
-        <section className="booking-side-card booking-side-card--coupon">
-          <div className="booking-side-card__heading">
-            <div className="icon-badge"><Check size={14} /></div>
-            <div>
-              <span>COUPON</span>
-              <small>Apply a coupon to save more</small>
-            </div>
-          </div>
-          <div className="booking-coupon-row">
-            <input
-              aria-label="Coupon code"
-              onChange={(event) => setCoupon(event.target.value)}
-              placeholder="Select Your Coupon code"
-              value={coupon}
-            />
-            <button
-              onClick={() =>
-                setCouponMessage(
-                  coupon.trim()
-                    ? "Coupon will be checked at confirmation."
-                    : "Enter a coupon code first."
-                )
-              }
-              type="button"
-            >
-              ›
-            </button>
-          </div>
-          {couponMessage ? (
-            <p className="booking-side-card__message" role="status">
-              {couponMessage}
-            </p>
-          ) : null}
-        </section>
-
-        {/* B. FARE SUMMARY */}
+        {paymentError || requestError ? <p className="booking-payment-error" role="alert">{paymentError || requestError}</p> : null}
+        {/* FARE SUMMARY */}
         <section className="booking-side-card booking-side-card--fare">
           <div className="booking-side-card__heading">
             <div className="icon-badge"><Check size={14} /></div>
@@ -706,13 +785,21 @@ export function BookingForm({ initialContext }: BookingFormProps) {
             <span>Total payable</span>
             <strong>{estimatedTotal === null ? "—" : formatINR(estimatedTotal)}</strong>
           </div>
+          <div className="booking-fare-total booking-fare-total--secondary">
+            <span>Advance payment</span>
+            <strong>{formatINR(500)}</strong>
+          </div>
+          <div className="booking-fare-total booking-fare-total--secondary">
+            <span>Remaining balance</span>
+            <strong>{estimatedTotal === null ? "â€”" : formatINR(Math.max(estimatedTotal - 500, 0))}</strong>
+          </div>
           <p className="fare-note">Taxes are accrued but included. Your booking is confirmed instantly after successful payment.</p>
         </section>
 
         {/* C. PAYMENT ACTIONS */}
         <section className="booking-side-card booking-side-card--actions">
-          <button className="pay-now-button" type="button">
-            PAY ₹1,000.00 NOW <small>Balances on pickup</small>
+          <button className="pay-now-button" onClick={() => void validateAndPay("advance")} type="button">
+            PAY ₹500 NOW <small>Balances on pickup</small>
           </button>
           <Button
             className="booking-proceed-button"

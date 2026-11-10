@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Fuel, Gauge, UsersRound } from "lucide-react";
+import { Fuel, Gauge, Mail, Phone, UserRound, UsersRound } from "lucide-react";
 import { useState } from "react";
 import type { DriverPreference } from "@/lib/booking";
 import type { Vehicle } from "@/data/vehicles";
@@ -17,6 +17,9 @@ interface BookingSummaryProps {
   roundTrip?: boolean;
   rentalDays: number | null;
   estimatedTotal: number | null;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
 }
 
 function dateLabel(value: string) {
@@ -42,6 +45,9 @@ export function BookingSummary({
   roundTrip,
   rentalDays,
   estimatedTotal,
+  customerName,
+  customerPhone,
+  customerEmail,
 }: BookingSummaryProps) {
   const [failedImage, setFailedImage] = useState(false);
   const image = failedImage
@@ -60,6 +66,29 @@ export function BookingSummary({
             <span>{rentalDays ? `${rentalDays} Day Trip` : "—"}</span>
             {driver ? <span>{driver === "chauffeur" ? "Chauffeur" : "Self-Drive"}</span> : null}
             {roundTrip !== undefined ? <span>{roundTrip ? "Round Trip" : "One Way"}</span> : null}
+          </div>
+          <div className="booking-summary__contact" aria-label="Customer details">
+            <div className="booking-summary__contact-card">
+              <div className="booking-summary__contact-label">
+                <UserRound aria-hidden="true" size={15} strokeWidth={2.2} />
+                <span>Customer Name</span>
+              </div>
+              <strong>{customerName || "Not entered"}</strong>
+            </div>
+            <div className="booking-summary__contact-card">
+              <div className="booking-summary__contact-label">
+                <Phone aria-hidden="true" size={15} strokeWidth={2.2} />
+                <span>Phone Number</span>
+              </div>
+              <strong>{customerPhone || "Not entered"}</strong>
+            </div>
+            <div className="booking-summary__contact-card">
+              <div className="booking-summary__contact-label">
+                <Mail aria-hidden="true" size={15} strokeWidth={2.2} />
+                <span>Email Address</span>
+              </div>
+              <strong>{customerEmail || "Not provided"}</strong>
+            </div>
           </div>
           
           <div className="booking-summary__date-grid">

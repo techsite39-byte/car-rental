@@ -20,6 +20,11 @@ export interface BookingRequest {
   driverPreference: DriverPreference;
   submittedAt: string;
   status: BookingStatus;
+  bookingId?: string;
+  totalAmount?: number;
+  advanceAmount?: number;
+  remainingAmount?: number;
+  paymentStatus?: string;
 }
 
 export interface ContactEnquiry {

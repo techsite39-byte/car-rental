@@ -27,6 +27,11 @@
   box-sizing: border-box;
 }
 
+.admin-app :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 .admin-app button,
 .admin-app input,
 .admin-app select,
@@ -80,6 +85,57 @@
 .admin-auth-panel form {
   display: grid;
   gap: 1rem;
+}
+
+.admin-password-field {
+  position: relative;
+  display: block;
+}
+
+.admin-password-field input {
+  padding-right: 4.25rem;
+}
+
+.admin-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.65rem;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.admin-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+}
+
+.admin-remember input {
+  accent-color: var(--accent);
+}
+
+.admin-auth-links {
+  display: grid;
+  gap: 0.7rem;
+  font-size: 0.7rem;
+}
+
+.admin-google-button {
+  min-height: 2.5rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--admin-text);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 650;
 }
 
 .admin-auth-panel > a {
@@ -384,37 +440,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.admin-prototype-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
-  border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-}
-
-.admin-prototype-banner > span {
-  width: 0.43rem;
-  height: 0.43rem;
-  flex: none;
-  margin-top: 0.36rem;
-  border-radius: 50%;
-  background: var(--admin-lime);
-}
-
-.admin-prototype-banner p {
-  margin: 0;
-  color: var(--admin-muted);
-  font-size: 0.74rem;
-  line-height: 1.55;
-}
-
-.admin-prototype-banner strong {
-  color: var(--admin-lime);
-  font-weight: 620;
-}
-
 .admin-page-intro {
   display: flex;
   align-items: flex-end;
@@ -461,8 +486,9 @@
 .admin-stat-card,
 .admin-panel {
   border: 1px solid var(--admin-border);
-  border-radius: 0.95rem;
-  background: linear-gradient(145deg, rgb(255 255 255 / 75%), rgb(255 255 255 / 90%));
+  border-radius: 1.1rem;
+  background: var(--admin-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .admin-stat-card {
@@ -565,9 +591,68 @@
   gap: 0.85rem;
 }
 
+.admin-public-preview-list {
+  display: grid;
+}
+
+.admin-public-preview-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 4.5rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.7rem;
+  border-top: 1px solid var(--admin-border);
+  padding: 0.72rem 0;
+}
+
+.admin-public-preview-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.admin-public-preview-row__content {
+  display: grid;
+  min-width: 0;
+  gap: 0.24rem;
+}
+
+.admin-public-preview-row__content strong,
+.admin-public-preview-row__content span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-public-preview-row__content strong {
+  color: var(--admin-text);
+  font-size: 0.76rem;
+  font-weight: 570;
+}
+
+.admin-public-preview-row__content span {
+  color: var(--admin-muted);
+  font-size: 0.67rem;
+}
+
+.admin-public-preview-row > a {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 0.6rem;
+  color: var(--admin-muted);
+  text-decoration: none;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.admin-public-preview-row > a:hover {
+  background: var(--soft-red);
+  color: var(--accent);
+}
+
 .admin-panel {
   min-width: 0;
-  padding: 1.1rem;
+  padding: 1.2rem;
 }
 
 .admin-panel__heading {
@@ -684,6 +769,18 @@
   border-color: color-mix(in srgb, var(--accent) 24%, white);
   background: var(--soft-red);
   color: var(--accent-dark);
+}
+
+.admin-status--published {
+  border-color: color-mix(in srgb, var(--success) 30%, white);
+  background: color-mix(in srgb, var(--success) 10%, white);
+  color: var(--text-primary);
+}
+
+.admin-status--unpublished {
+  border-color: var(--border);
+  background: var(--background);
+  color: var(--text-secondary-accessible);
 }
 
 .admin-empty-state,
@@ -903,6 +1000,7 @@
 
 .admin-table {
   width: 100%;
+  min-width: 40rem;
   border-collapse: collapse;
   text-align: left;
 }
@@ -994,6 +1092,13 @@
 
 .admin-mobile-cards {
   display: none;
+}
+
+.admin-mobile-vehicle__statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
 }
 
 .admin-status-select {
@@ -1468,6 +1573,10 @@
   .admin-menu-button {
     display: inline-grid;
   }
+
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 800px) {
@@ -1582,7 +1691,7 @@
     min-width: 100%;
   }
 
-  .admin-table-wrap {
+  .admin-fleet-panel .admin-table-wrap {
     display: none;
   }
 
@@ -1627,6 +1736,21 @@
 
   .admin-mobile-vehicle .admin-status {
     font-size: 0.54rem;
+  }
+
+  .admin-public-preview-row {
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    gap: 0.45rem;
+  }
+
+  .admin-public-preview-row > .admin-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .admin-public-preview-row > a {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .admin-mobile-vehicle .admin-row-actions {

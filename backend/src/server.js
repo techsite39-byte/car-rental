@@ -3,11 +3,12 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(currentDirectory, "../.env.local") });
+dotenv.config({ path: path.resolve(currentDirectory, "../../.env") });
 
 import mongoose from "mongoose";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./config/database.js";
+import { seedInitialAdmin } from "./services/adminSeeder.js";
 
 const port = Number(process.env.PORT || 5000);
 if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
@@ -18,7 +19,15 @@ const app = createApp();
 const server = app.listen(port, () => {
   console.info(`EPICDRIVE booking API listening on port ${port}.`);
   connectDatabase()
-    .then(() => console.info("Booking database connection established."))
+    .then(async () => {
+      console.info("Booking database connection established.");
+      const result = await seedInitialAdmin();
+      console.info(
+        result.created
+          ? `Initial admin account created for ${result.email}.`
+          : `Initial admin account already exists for ${result.email}.`,
+      );
+    })
     .catch((error) => {
       console.error(
         "Booking database is unavailable; booking writes are disabled.",

@@ -5,6 +5,7 @@ import { isDatabaseReady } from "./controllers/bookingController.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import fleetRoutes from "./routes/fleetRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 function configuredFrontendOrigin() {
   const value = process.env.FRONTEND_URL?.trim() || "http://localhost:3000";
@@ -39,6 +40,7 @@ function createApp() {
   });
   app.use("/api/bookings", bookingRoutes);
   app.use("/api/fleet", fleetRoutes);
+  app.use("/api/admin", adminRoutes);
   app.use((_req, res) => res.status(404).json({ error: "Endpoint not found." }));
   app.use(errorHandler);
 

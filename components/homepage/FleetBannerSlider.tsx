@@ -14,14 +14,34 @@ const slides = [
 
 export function FleetBannerSlider() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPlayback = () => {
+      const shouldPause = mediaQuery.matches || document.hidden;
+      setIsAutoPlaying(!shouldPause);
+    };
+
+    syncPlayback();
+    mediaQuery.addEventListener("change", syncPlayback);
+    document.addEventListener("visibilitychange", syncPlayback);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncPlayback);
+      document.removeEventListener("visibilitychange", syncPlayback);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+
     const intervalId = window.setInterval(() => {
       setActiveIndex((currentIndex) => (currentIndex + 1) % slides.length);
     }, 3000);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [isAutoPlaying]);
 
   return (
     <section aria-label="Featured EPICDRIVE offers" className="fleet-banner-slider">
@@ -35,7 +55,7 @@ export function FleetBannerSlider() {
             <Image
               alt={slide.alt}
               fill
-              loading={index === 0 ? "eager" : "lazy"}
+              loading="lazy"
               sizes="(max-width: 700px) calc(100vw - 2rem), (max-width: 1200px) calc(100vw - 4rem), 1200px"
               src={slide.src}
             />

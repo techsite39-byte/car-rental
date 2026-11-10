@@ -5,7 +5,13 @@ import { hasAdminSession } from "@/lib/admin-session";
 const REQUEST_TIMEOUT_MS = 12_000;
 const MAX_BODY_LENGTH = 12_000;
 
-async function backendRequest(path: string, method: string, body?: string, admin = false) {
+async function backendRequest(
+  path: string,
+  method: string,
+  body?: string,
+  admin = false,
+  cacheControl = "public, max-age=60, stale-while-revalidate=300",
+) {
   const origin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
   const url = new URL(path, `${origin.replace(/\/+$/, "")}/`);
   const headers = new Headers();
@@ -25,7 +31,7 @@ async function backendRequest(path: string, method: string, body?: string, admin
       method,
       headers,
       ...(body !== undefined ? { body } : {}),
-      cache: "no-store",
+      cache: "force-cache",
       redirect: "error",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
@@ -37,7 +43,7 @@ async function backendRequest(path: string, method: string, body?: string, admin
       payload && typeof payload === "object"
         ? payload
         : { error: "Fleet service returned an invalid response." },
-      { status: response.status, headers: { "Cache-Control": "no-store" } },
+      { status: response.status, headers: { "Cache-Control": cacheControl } },
     );
   } catch {
     return NextResponse.json(
@@ -64,6 +70,7 @@ export async function GET(request: Request) {
     "GET",
     undefined,
     includeHidden,
+    includeHidden ? "no-store" : "public, max-age=60, stale-while-revalidate=300",
   );
 }
 

@@ -50,12 +50,10 @@ by slug; existing database edits are never overwritten. Deleted seed vehicles
 are archived so that the seed migration does not recreate them. Other prototype
 admin areas still use browser-local data and are not covered by fleet storage.
 
-Create a root `.env.local` from `.env.example`, and configure
-`backend/.env.local` from `backend/.env.example`. Set `MONGODB_URI` only in the
-backend environment. Set `ADMIN_PASSWORD`, a random `ADMIN_SESSION_SECRET` of
-at least 32 characters, and an `ADMIN_API_TOKEN` in the root environment. Use
-the exact same `ADMIN_API_TOKEN` in the backend environment. Keep both local
-environment files out of Git. Generate random tokens locally, for example with
+Configure the root `.env` for both the Next.js app and backend. Keep it out of
+Git. Set `MONGODB_URI`, `ADMIN_PASSWORD`, a random `ADMIN_SESSION_SECRET` of at
+least 32 characters, and `ADMIN_API_TOKEN` there. Generate random tokens
+locally, for example with
 `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 
 The Next.js server proxies fleet requests to `BOOKING_API_URL`; run the backend

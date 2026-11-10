@@ -2,7 +2,9 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import {
   createBooking,
+  createPaymentOrder,
   getBookingByReference,
+  verifyPayment,
 } from "../controllers/bookingController.js";
 
 const bookingLimiter = rateLimit({
@@ -19,6 +21,8 @@ const bookingLimiter = rateLimit({
 
 const router = Router();
 router.post("/", bookingLimiter, createBooking);
+router.post("/payments/order", bookingLimiter, createPaymentOrder);
+router.post("/payments/verify", bookingLimiter, verifyPayment);
 router.get("/:reference", getBookingByReference);
 
 export default router;

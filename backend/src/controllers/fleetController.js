@@ -149,8 +149,11 @@ function seedVehicle(vehicle, showInFleet) {
   };
 }
 
-async function ensureFleetSeeded() {
+async function ensureFleetSeededIfNeeded() {
   await FleetVehicle.init();
+  const count = await FleetVehicle.countDocuments({ archived: { $ne: true } });
+  if (count > 0) return;
+
   const records = [
     ...fleetSeeds.map((vehicle) => seedVehicle(vehicle, true)),
     ...showcaseSeeds.map((vehicle) => seedVehicle(vehicle, false)),
@@ -205,7 +208,7 @@ async function listFleet(_req, res, next) {
     if (!isDatabaseReady()) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const query = { archived: { $ne: true } };
     if (_req.query.includeHidden !== "true") query.showInFleet = true;
     const vehicles = await FleetVehicle.find(query)
@@ -224,7 +227,7 @@ async function getFleetVehicle(req, res, next) {
     if (!isDatabaseReady()) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const vehicle = await findVehicle(req.params.identifier);
     if (!vehicle) return res.status(404).json({ error: "Vehicle not found." });
     return res.status(200).json({ vehicle: serializeVehicle(vehicle) });
@@ -238,7 +241,7 @@ async function createFleetVehicle(req, res, next) {
     if (!isDatabaseReady()) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const vehicle = validateVehicleInput(req.body, { isNew: true });
     const saved = await FleetVehicle.create({ id: randomUUID(), ...vehicle });
     return res.status(201).json({ vehicle: serializeVehicle(saved) });
@@ -252,7 +255,7 @@ async function updateFleetVehicle(req, res, next) {
     if (!isDatabaseReady()) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const existing = await findVehicle(req.params.identifier);
     if (!existing) return res.status(404).json({ error: "Vehicle not found." });
     const vehicle = validateVehicleInput(req.body, { existing });
@@ -272,7 +275,7 @@ async function deleteFleetVehicle(req, res, next) {
     if (!isDatabaseReady()) {
       return res.status(503).json({ error: "Fleet data is temporarily unavailable." });
     }
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const vehicle = await findVehicle(req.params.identifier);
     if (!vehicle) return res.status(404).json({ error: "Vehicle not found." });
     await FleetVehicle.updateOne(
@@ -285,11 +288,16 @@ async function deleteFleetVehicle(req, res, next) {
   }
 }
 
+async function ensureFleetSeeded() {
+  return ensureFleetSeededIfNeeded();
+}
+
 export {
   FleetInputError,
   createFleetVehicle,
   deleteFleetVehicle,
   ensureFleetSeeded,
+  ensureFleetSeededIfNeeded,
   getFleetVehicle,
   listFleet,
   serializeVehicle,

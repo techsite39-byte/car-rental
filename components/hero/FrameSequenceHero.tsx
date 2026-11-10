@@ -17,8 +17,19 @@ export function HomeVideoHero() {
       "(prefers-reduced-motion: reduce)",
     );
     const syncPlaybackWithMotionPreference = () => {
-      video.autoplay = !reducedMotionQuery.matches;
-      if (reducedMotionQuery.matches) {
+      const shouldPause = reducedMotionQuery.matches || document.hidden;
+      video.autoplay = !shouldPause;
+      if (shouldPause) {
+        video.pause();
+        return;
+      }
+
+      const videoRect = video.getBoundingClientRect();
+      const isVisible =
+        videoRect.top < window.innerHeight * 1.25 &&
+        videoRect.bottom > 0;
+
+      if (!isVisible) {
         video.pause();
         return;
       }
@@ -26,15 +37,34 @@ export function HomeVideoHero() {
       void video.play().catch(() => undefined);
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          syncPlaybackWithMotionPreference();
+          return;
+        }
+
+        video.pause();
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(video);
     syncPlaybackWithMotionPreference();
     reducedMotionQuery.addEventListener(
       "change",
       syncPlaybackWithMotionPreference,
     );
+    document.addEventListener("visibilitychange", syncPlaybackWithMotionPreference);
 
     return () => {
+      observer.disconnect();
       reducedMotionQuery.removeEventListener(
         "change",
+        syncPlaybackWithMotionPreference,
+      );
+      document.removeEventListener(
+        "visibilitychange",
         syncPlaybackWithMotionPreference,
       );
     };
@@ -53,7 +83,7 @@ export function HomeVideoHero() {
         muted
         playsInline
         poster="/hero1-poster.jpg"
-        preload="metadata"
+        preload="none"
         ref={videoRef}
         tabIndex={-1}
       >

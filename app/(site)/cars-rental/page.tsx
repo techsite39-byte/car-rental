@@ -23,6 +23,7 @@ export default async function CarsRentalRoute({ searchParams }: { searchParams: 
     pickupTime: first(params.pickupTime),
     returnDate: first(params.returnDate),
     returnTime: first(params.returnTime),
+    name: first(params.name),
     phone: first(params.phone),
     dealType: first(params.dealType),
   };

@@ -434,9 +434,14 @@
 
 .home-booking .journeyFields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(10rem, auto);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.72fr);
+  align-items: center;
   gap: 0.65rem;
+}
+
+.home-booking .journeyFields .dateRangeField {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .home-booking .dateRangeField {
@@ -513,6 +518,7 @@
 
 .home-booking .fieldControl,
 .home-booking .dateField {
+  position: relative;
   display: flex;
   width: 100%;
   min-width: 0;
@@ -556,6 +562,28 @@
   color: var(--text-primary);
   font: inherit;
   font-size: 0.88rem;
+}
+
+.home-booking .fieldControl select {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 1.3rem 0 0;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.home-booking .fieldSelectArrow {
+  position: absolute;
+  right: 0.75rem;
+  pointer-events: none;
+  color: var(--text-secondary-accessible);
 }
 
 .home-booking .fieldControl input::placeholder {
@@ -655,7 +683,11 @@
 }
 
 .home-booking .searchButton {
-  align-self: end;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  width: 100%;
+  min-height: 3.65rem;
 }
 
 .home-booking .searchButton:hover,
@@ -1320,6 +1352,19 @@
 
   .home-booking .journeyFields {
     gap: 0.9rem;
+  }
+
+  .home-booking .journeyFields .dateRangeField,
+  .home-booking .journeyFields .searchButton {
+    grid-column: 1;
+  }
+
+  .home-booking .journeyFields .dateRangeField {
+    grid-row: 1;
+  }
+
+  .home-booking .journeyFields .searchButton {
+    grid-row: 2;
   }
 
   .home-booking .searchButton {

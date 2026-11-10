@@ -34,16 +34,23 @@ export function StatisticsSection() {
 
       const duration = 1400;
       const startedAt = performance.now();
+      let lastUpdate = 0;
+      let animationFrameRef = 0;
+
       const animate = (now: number) => {
         const progress = Math.min((now - startedAt) / duration, 1);
         const easedProgress = 1 - Math.pow(1 - progress, 3);
-        setCounts(
-          STATISTICS.map((statistic) =>
-            statistic.animate
-              ? Math.round(statistic.value * easedProgress)
-              : statistic.value,
-          ),
+        const nextCounts = STATISTICS.map((statistic) =>
+          statistic.animate
+            ? Math.round(statistic.value * easedProgress)
+            : statistic.value,
         );
+
+        const shouldUpdate = now - lastUpdate >= 33 || progress >= 1;
+        if (shouldUpdate) {
+          lastUpdate = now;
+          setCounts(nextCounts);
+        }
 
         if (progress < 1) {
           animationFrameRef = requestAnimationFrame(animate);
@@ -51,9 +58,8 @@ export function StatisticsSection() {
       };
 
       animationFrameRef = requestAnimationFrame(animate);
+      return () => cancelAnimationFrame(animationFrameRef);
     };
-
-    let animationFrameRef = 0;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -68,7 +74,6 @@ export function StatisticsSection() {
     observer.observe(section);
     return () => {
       observer.disconnect();
-      if (animationFrameRef) cancelAnimationFrame(animationFrameRef);
     };
   }, []);
 

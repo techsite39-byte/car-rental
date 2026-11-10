@@ -13,6 +13,9 @@ import {
   Flag,
   Phone,
   Search,
+  UserRound,
+  MapPin,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { DEMO_PICKUP_LOCATIONS } from "@/lib/booking";
@@ -21,7 +24,8 @@ import "./HomeBookingSection.css";
 
 const deals = [
   { id: "daily", label: "Daily Deals", detail: "Flexible plans for a day out" },
-  { id: "weekday", label: "Week Day Deals", detail: "Great value for weekday trips" },
+  { id: "weekday", label: "Weekday Deals", detail: "Published daily rates; weekday packages are not configured" },
+  { id: "monthly", label: "Monthly Deals", detail: "Published daily rates; monthly packages are not configured" },
 ] as const;
 
 const promotionCards = [
@@ -478,8 +482,8 @@ export function HomeBookingSection() {
   const [activePromotion, setActivePromotion] = useState(0);
   const [isPromotionPaused, setIsPromotionPaused] = useState(false);
   const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [pickupHub, setPickupHub] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [pickupHub, setPickupHub] = useState("Madurai");
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [dropoffDate, setDropoffDate] = useState("");
@@ -496,19 +500,22 @@ export function HomeBookingSection() {
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const pickup = params.get("pickup") ?? "";
-    const [hub, ...cityParts] = pickup.split(",");
-    const restoredCity = cityParts.join(",").trim();
+    const hydrateFromQuery = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const pickup = params.get("pickup") ?? "";
+      const [hub] = pickup.split(",");
 
-    if (params.get("phone")) setPhone((params.get("phone") ?? "").replace(/^\\+91/, ""));
-    if (restoredCity) setCity(restoredCity);
-    if (hub?.trim()) setPickupHub(hub.trim());
-    if (params.get("pickupDate")) setPickupDate(params.get("pickupDate") ?? "");
-    if (params.get("pickupTime")) setPickupTime(params.get("pickupTime") ?? "");
-    if (params.get("returnDate")) setDropoffDate(params.get("returnDate") ?? "");
-    if (params.get("returnTime")) setDropoffTime(params.get("returnTime") ?? "");
-    if (params.get("dealType") === "Week Day Deals") setDeal("weekday");
+      if (params.get("name")) setCustomerName(params.get("name") ?? "");
+      if (params.get("phone")) setPhone((params.get("phone") ?? "").replace(/^\+91/, ""));
+      if (hub?.trim()) setPickupHub(hub.trim());
+      if (params.get("pickupDate")) setPickupDate(params.get("pickupDate") ?? "");
+      if (params.get("pickupTime")) setPickupTime(params.get("pickupTime") ?? "");
+      if (params.get("returnDate")) setDropoffDate(params.get("returnDate") ?? "");
+      if (params.get("returnTime")) setDropoffTime(params.get("returnTime") ?? "");
+      if (params.get("dealType") === "Week Day Deals") setDeal("weekday");
+    }, 0);
+
+    return () => window.clearTimeout(hydrateFromQuery);
   }, []);
 
   useEffect(() => {
@@ -589,27 +596,29 @@ export function HomeBookingSection() {
     event.preventDefault();
     const nextErrors: Record<string, string> = {};
     const phoneDigits = phone.replace(/\D/g, "");
-    const trimmedCity = city.trim();
+    const trimmedName = customerName.trim();
     const trimmedPickupHub = pickupHub.trim();
-    const pickupLocation = `${trimmedPickupHub}, ${trimmedCity}`;
+    const pickupLocation = `${trimmedPickupHub}, ${trimmedPickupHub}`;
     const tripDays = getTripDays(pickupDate, pickupTime, dropoffDate, dropoffTime);
 
+    if (trimmedName.length < 2 || trimmedName.length > 120) {
+      nextErrors.customerName = "Enter your full name (2–120 characters).";
+    }
     if (!/^[6-9]\d{9}$/.test(phoneDigits)) {
       nextErrors.phone = "Enter a valid 10-digit Indian mobile number.";
-    }
-    if (trimmedCity.length < 2 || trimmedCity.length > 120) {
-      nextErrors.city = "Enter a city (2–120 characters).";
-    }
-    if (!DEMO_PICKUP_LOCATIONS.some((location) => location.toLowerCase() === trimmedCity.toLowerCase())) {
-      nextErrors.city = "Choose a supported pickup city.";
     }
     if (
       trimmedPickupHub.length < 2 ||
       trimmedPickupHub.length > 120 ||
       pickupLocation.length > 120
     ) {
-      nextErrors.pickupHub =
-        "Enter a pickup hub; the hub and city must fit within 120 characters.";
+      nextErrors.pickupHub = "Choose a valid pickup hub.";
+    } else if (
+      !DEMO_PICKUP_LOCATIONS.some(
+        (location) => location.toLowerCase() === trimmedPickupHub.toLowerCase(),
+      )
+    ) {
+      nextErrors.pickupHub = "Choose an available pickup hub.";
     }
     if (!pickupDate || !pickupTime) {
       nextErrors.pickup = "Choose your pickup date and time.";
@@ -631,6 +640,7 @@ export function HomeBookingSection() {
     if (Object.keys(nextErrors).length > 0) return;
 
     const query = new URLSearchParams({
+      name: trimmedName,
       pickup: pickupLocation,
       return: pickupLocation,
       pickupDate,
@@ -754,12 +764,34 @@ export function HomeBookingSection() {
             </aside>
             <form className="bookingForm" noValidate onSubmit={handleSearch}>
             <div className="contactFields">
+              <label className="field" htmlFor="home-booking-name">
+                <span className="fieldLabel">Customer Name</span>
+                <span className={`fieldControl ${errors.customerName ? "fieldInvalid" : ""}`}>
+                  <UserRound aria-hidden="true" className="fieldIcon" size={17} />
+                  <input
+                    aria-describedby={errors.customerName ? "home-booking-name-error" : undefined}
+                    aria-invalid={Boolean(errors.customerName)}
+                    autoComplete="name"
+                    id="home-booking-name"
+                    maxLength={120}
+                    onChange={(event) => {
+                      setCustomerName(event.target.value);
+                      setErrors((current) => ({ ...current, customerName: "" }));
+                    }}
+                    placeholder="Enter your full name"
+                    required
+                    type="text"
+                    value={customerName}
+                  />
+                </span>
+                {errors.customerName ? <small className="fieldError" id="home-booking-name-error" role="alert">{errors.customerName}</small> : null}
+              </label>
+
               <label className="field" htmlFor="home-booking-phone">
                 <span className="fieldLabel">Phone Number</span>
                 <span className={`fieldControl ${errors.phone ? "fieldInvalid" : ""}`}>
                   <Phone aria-hidden="true" className="fieldIcon" size={17} />
                   <span aria-label="India, plus 91" className="countryCode">
-                    <span aria-hidden="true" className="countryFlag">🇮🇳</span>
                     <span>+91</span>
                   </span>
                   <input
@@ -790,50 +822,26 @@ export function HomeBookingSection() {
                 {errors.phone ? <small className="fieldError" id="home-booking-phone-error" role="alert">{errors.phone}</small> : null}
               </label>
 
-              <label className="field" htmlFor="home-booking-city">
-                <span className="fieldLabel">City</span>
-                <span className={`fieldControl ${errors.city ? "fieldInvalid" : ""}`}>
-                  <input
-                    aria-describedby={errors.city ? "home-booking-city-error" : undefined}
-                    aria-invalid={Boolean(errors.city)}
-                    autoComplete="address-level2"
-                    id="home-booking-city"
-                    list="home-booking-city-options"
-                    maxLength={120}
-                    onChange={(event) => {
-                      setCity(event.target.value);
-                      setErrors((current) => ({ ...current, city: "" }));
-                    }}
-                    placeholder="Enter city"
-                    required
-                    value={city}
-                  />
-                </span>
-                {errors.city ? <small className="fieldError" id="home-booking-city-error" role="alert">{errors.city}</small> : null}
-                <datalist id="home-booking-city-options">
-                  {DEMO_PICKUP_LOCATIONS.map((location) => (
-                    <option key={location} value={location} />
-                  ))}
-                </datalist>
-              </label>
-
               <label className="field" htmlFor="home-booking-pickup-hub">
                 <span className="fieldLabel">Pickup Hub</span>
                 <span className={`fieldControl ${errors.pickupHub ? "fieldInvalid" : ""}`}>
-                  <input
+                  <MapPin aria-hidden="true" className="fieldIcon" size={17} />
+                  <select
                     aria-describedby={errors.pickupHub ? "home-booking-pickup-hub-error" : undefined}
                     aria-invalid={Boolean(errors.pickupHub)}
-                    autoComplete="off"
                     id="home-booking-pickup-hub"
-                    maxLength={120}
                     onChange={(event) => {
                       setPickupHub(event.target.value);
                       setErrors((current) => ({ ...current, pickupHub: "" }));
                     }}
-                    placeholder="Enter pickup hub"
                     required
                     value={pickupHub}
-                  />
+                  >
+                    {DEMO_PICKUP_LOCATIONS.map((location) => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                  <ChevronDown aria-hidden="true" className="fieldSelectArrow" size={16} />
                 </span>
                 {errors.pickupHub ? <small className="fieldError" id="home-booking-pickup-hub-error" role="alert">{errors.pickupHub}</small> : null}
               </label>
@@ -887,7 +895,6 @@ export function HomeBookingSection() {
                   {errors.dropoff ? <small className="fieldError" id="home-booking-dropoff-error" role="alert">{errors.dropoff}</small> : null}
                 </label>
               </div>
-
               <button className="searchButton" type="submit">
                 <Search aria-hidden="true" size={17} />
                 <span>Search Car</span>

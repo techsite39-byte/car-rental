@@ -1,12 +1,15 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import mongoose from "mongoose";
 import vehicles from "../../../data/vehicles.json" with { type: "json" };
 import originalVehicles from "../../../data/original-vehicles.json" with { type: "json" };
 import Booking from "../models/Booking.js";
+import Payment from "../models/Payment.js";
 import FleetVehicle from "../models/FleetVehicle.js";
-import { ensureFleetSeeded } from "./fleetController.js";
+import { ensureFleetSeededIfNeeded } from "./fleetController.js";
+import { sendWhatsAppConfirmation } from "../services/whatsapp.js";
 
 const DAY_MS = 86_400_000;
+const ADVANCE_AMOUNT = 500;
 const bookingVehicles = [...vehicles, ...originalVehicles];
 const IDEMPOTENCY_KEY_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -66,6 +69,15 @@ function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
     1000,
     { optional: true },
   );
+  const documentsInput = input.documents && typeof input.documents === "object"
+    ? input.documents
+    : {};
+  const documents = {
+    originalProof: readText(documentsInput.originalProof, "Original proof", 80, { optional: true }),
+    professionalProof: readText(documentsInput.professionalProof, "Professional proof", 80, { optional: true }),
+    idProof: readText(documentsInput.idProof, "ID proof", 80, { optional: true }),
+  };
+  const pickupPreference = input.pickupPreference === "delivery" ? "delivery" : "self";
 
   if (customerName.length < 2) {
     throw new BookingInputError("Enter a valid customer name.");
@@ -127,6 +139,8 @@ function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
       rentalType: input.rentalType,
       roundTrip: input.roundTrip,
       additionalRequests,
+      pickupPreference,
+      documents,
     };
   }
 
@@ -142,6 +156,13 @@ function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
     customerEmail: email,
     vehicleId: vehicle.id,
     vehicleName: vehicle.name,
+    vehicleDetails: {
+      id: vehicle.id,
+      name: vehicle.name,
+      model: vehicle.model || "",
+      image: vehicle.image || "",
+      registrationNumber: vehicle.registrationNumber || "",
+    },
     pickupLocation,
     returnLocation,
     pickupDateTime,
@@ -152,14 +173,26 @@ function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
     rentalType: input.rentalType,
     roundTrip: input.roundTrip,
     additionalRequests,
+    pickupPreference,
+    documents,
+    baseTariff: estimatedTotal,
+    pickupCharges: 0,
+    dropCharges: 0,
+    securityDeposit: 0,
+    totalAmount: estimatedTotal,
+    advanceAmount: ADVANCE_AMOUNT,
+    remainingAmount: Math.max(estimatedTotal - ADVANCE_AMOUNT, 0),
+    paymentStatus: "pending",
   };
 }
 
 function publicBooking(booking) {
   return {
     bookingReference: booking.bookingReference,
+    bookingId: booking.bookingId ?? booking.bookingReference,
     vehicleId: booking.vehicleId,
     vehicleName: booking.vehicleName,
+    vehicleDetails: booking.vehicleDetails,
     pickupLocation: booking.pickupLocation,
     returnLocation: booking.returnLocation,
     pickupDateTime: booking.pickupDateTime.toISOString(),
@@ -167,10 +200,75 @@ function publicBooking(booking) {
     rentalDurationDays: booking.rentalDurationDays,
     startingDailyRate: booking.startingDailyRate,
     estimatedTotal: booking.estimatedTotal,
+    totalAmount: booking.totalAmount ?? booking.estimatedTotal,
+    baseTariff: booking.baseTariff ?? booking.estimatedTotal,
+    pickupCharges: booking.pickupCharges ?? 0,
+    dropCharges: booking.dropCharges ?? 0,
+    securityDeposit: booking.securityDeposit ?? 0,
+    advanceAmount: booking.advanceAmount ?? ADVANCE_AMOUNT,
+    remainingAmount: booking.remainingAmount ?? Math.max((booking.totalAmount ?? booking.estimatedTotal) - ADVANCE_AMOUNT, 0),
+    customerName: booking.customerName,
+    customerPhone: booking.customerPhone,
+    customerEmail: booking.customerEmail,
+    pickupPreference: booking.pickupPreference,
+    documents: booking.documents,
+    additionalRequests: booking.additionalRequests,
+    paymentStatus: booking.paymentStatus,
+    whatsappStatus: booking.whatsappStatus,
+    whatsappMessageId: booking.whatsappMessageId,
     rentalType: booking.rentalType,
     status: booking.status,
     createdAt: booking.createdAt.toISOString(),
   };
+}
+
+function authorizeBooking(booking, token) {
+  if (!booking || typeof token !== "string" || !token) return false;
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const storedHash = booking.accessTokenHash;
+  return typeof storedHash === "string" &&
+    storedHash.length === tokenHash.length &&
+    timingSafeEqual(Buffer.from(storedHash), Buffer.from(tokenHash));
+}
+
+async function recordVerifiedPayment(booking, payment, gatewayPaymentId, signature) {
+  payment.paymentStatus = "verified";
+  payment.paymentId = gatewayPaymentId;
+  payment.gatewayTransactionId = gatewayPaymentId;
+  payment.gatewaySignature = signature;
+  payment.paymentDate = new Date();
+  await payment.save();
+
+  const paidPayments = await Payment.find({
+    bookingReference: booking.bookingReference,
+    paymentStatus: "verified",
+  }).lean();
+  const paidAmount = paidPayments.reduce((sum, entry) => sum + entry.amount, 0);
+  booking.paymentStatus = paidAmount >= booking.totalAmount ? "paid" : "partial";
+  booking.remainingAmount = Math.max(booking.totalAmount - paidAmount, 0);
+  booking.status = "confirmed";
+
+  try {
+    if (booking.whatsappStatus !== "sent") {
+      const result = await sendWhatsAppConfirmation(booking, payment);
+      booking.whatsappStatus = result.status;
+      booking.whatsappMessageId = result.messageId || "";
+      booking.whatsappError = result.error || "";
+      payment.whatsappStatus = result.status;
+      payment.whatsappMessageId = result.messageId || "";
+      payment.whatsappError = result.error || "";
+      await payment.save();
+    }
+  } catch (error) {
+    booking.whatsappStatus = "failed";
+    booking.whatsappError = error instanceof Error ? error.message : "WhatsApp delivery failed.";
+    payment.whatsappStatus = "failed";
+    payment.whatsappError = booking.whatsappError;
+    await payment.save();
+  }
+
+  await booking.save();
+  return publicBooking(booking);
 }
 
 function newBookingReference() {
@@ -193,7 +291,7 @@ async function createBooking(req, res, next) {
       });
     }
 
-    await ensureFleetSeeded();
+    await ensureFleetSeededIfNeeded();
     const fleet = await FleetVehicle.find({ archived: { $ne: true } }).lean();
     const bookingData = validateBookingInput(
       req.body,
@@ -213,9 +311,11 @@ async function createBooking(req, res, next) {
     const accessTokenHash = createHash("sha256")
       .update(accessToken)
       .digest("hex");
+    const bookingReference = newBookingReference();
     const booking = await Booking.create({
       ...bookingData,
-      bookingReference: newBookingReference(),
+      bookingReference,
+      bookingId: bookingReference,
       accessTokenHash,
       status: "pending",
     });
@@ -237,6 +337,90 @@ async function createBooking(req, res, next) {
         return next(lookupError);
       }
     }
+    return next(error);
+  }
+}
+
+async function createPaymentOrder(req, res, next) {
+  try {
+    if (!isDatabaseReady()) return res.status(503).json({ code: "database_unavailable", error: "Payment database is unavailable." });
+    const keyId = process.env.RAZORPAY_KEY_ID?.trim();
+    const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+    if (!keyId || !keySecret) return res.status(503).json({ code: "payment_not_configured", error: "Payment gateway is not configured." });
+
+    const bookingReference = readText(req.body?.bookingReference, "Booking reference", 80);
+    const accessToken = readText(req.body?.accessToken, "Booking access token", 200);
+    const paymentType = req.body?.paymentType === "full" ? "full" : "advance";
+    const booking = await Booking.findOne({ bookingReference }).select("+accessTokenHash");
+    if (!authorizeBooking(booking, accessToken)) return res.status(404).json({ error: "Booking not found." });
+    const verifiedPayments = await Payment.find({ bookingReference, paymentStatus: "verified" }).lean();
+    const paidAmount = verifiedPayments.reduce((sum, entry) => sum + entry.amount, 0);
+    const amount = paymentType === "full"
+      ? Math.max(booking.totalAmount - paidAmount, 0)
+      : booking.advanceAmount;
+    if (!Number.isSafeInteger(amount) || amount <= 0) return res.status(409).json({ error: "This booking has no remaining payment due." });
+    const existing = await Payment.findOne({ bookingReference, amount, paymentStatus: "created" });
+    if (existing) return res.json({ keyId, orderId: existing.gatewayOrderId, amount, currency: "INR", booking: publicBooking(booking) });
+
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const gatewayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: bookingReference, notes: { bookingReference, paymentType } }),
+    });
+    const order = await gatewayResponse.json().catch(() => null);
+    if (!gatewayResponse.ok || !order?.id) return res.status(502).json({ error: "Payment order could not be created." });
+    await Payment.create({
+      bookingReference,
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      amount,
+      currency: "INR",
+      gatewayOrderId: order.id,
+      paymentStatus: "created",
+    });
+    return res.status(201).json({ keyId, orderId: order.id, amount, currency: "INR", booking: publicBooking(booking) });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function verifyPayment(req, res, next) {
+  try {
+    if (!isDatabaseReady()) return res.status(503).json({ code: "database_unavailable", error: "Payment database is unavailable." });
+    const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim();
+    if (!keySecret) return res.status(503).json({ code: "payment_not_configured", error: "Payment gateway is not configured." });
+    const bookingReference = readText(req.body?.bookingReference, "Booking reference", 80);
+    const accessToken = readText(req.body?.accessToken, "Booking access token", 200);
+    const orderId = readText(req.body?.razorpay_order_id, "Payment order", 100);
+    const paymentId = readText(req.body?.razorpay_payment_id, "Payment", 100);
+    const signature = readText(req.body?.razorpay_signature, "Payment signature", 200);
+    const booking = await Booking.findOne({ bookingReference }).select("+accessTokenHash");
+    if (!authorizeBooking(booking, accessToken)) return res.status(404).json({ error: "Booking not found." });
+    const payment = await Payment.findOne({ bookingReference, gatewayOrderId: orderId }).select("+gatewaySignature");
+    if (!payment) return res.status(404).json({ error: "Payment order not found." });
+    if (payment.paymentStatus === "verified") {
+      const confirmed = booking.whatsappStatus === "sent"
+        ? publicBooking(booking)
+        : await recordVerifiedPayment(booking, payment, payment.paymentId, payment.gatewaySignature);
+      return res.json({ booking: confirmed, payment });
+    }
+    const signed = createHmac("sha256", keySecret).update(`${orderId}|${paymentId}`).digest("hex");
+    if (signed !== signature) return res.status(400).json({ error: "Payment verification failed." });
+
+    const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${keySecret}`).toString("base64");
+    const gatewayResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Basic ${auth}` } });
+    const gatewayPayment = await gatewayResponse.json().catch(() => null);
+    if (
+      !gatewayResponse.ok ||
+      gatewayPayment?.order_id !== orderId ||
+      gatewayPayment?.amount !== payment.amount * 100 ||
+      !["captured", "authorized"].includes(gatewayPayment?.status)
+    ) return res.status(400).json({ error: "Payment has not been captured by the gateway." });
+
+    const confirmed = await recordVerifiedPayment(booking, payment, paymentId, signature);
+    return res.json({ booking: confirmed, payment: { paymentId, amount: payment.amount, status: "verified" } });
+  } catch (error) {
     return next(error);
   }
 }
@@ -276,8 +460,10 @@ async function getBookingByReference(req, res, next) {
 export {
   BookingInputError,
   createBooking,
+  createPaymentOrder,
   getBookingByReference,
   isDatabaseReady,
   publicBooking,
   validateBookingInput,
+  verifyPayment,
 };

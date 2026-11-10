@@ -16,6 +16,7 @@ export interface RentalSearchParams {
   pickupTime?: string;
   returnDate?: string;
   returnTime?: string;
+  name?: string;
   phone?: string;
   dealType?: string;
 }
@@ -49,9 +50,22 @@ function getQuery(search: RentalSearchParams, vehicle?: Vehicle, dealType?: stri
   if (search.pickupTime) query.set("pickupTime", search.pickupTime);
   if (search.returnDate) query.set("returnDate", search.returnDate);
   if (search.returnTime) query.set("returnTime", search.returnTime);
+  if (search.name) query.set("name", search.name);
   if (search.phone) query.set("phone", search.phone);
   if (dealType) query.set("dealType", dealType);
   return query.toString();
+}
+
+function normalizeDealType(value?: string) {
+  if (value === "Monthly Deals" || value === "monthly") return "Monthly Deals";
+  if (
+    value === "Weekday Deals" ||
+    value === "Week Day Deals" ||
+    value === "weekday"
+  ) {
+    return "Weekday Deals";
+  }
+  return "Daily Deals";
 }
 
 function RentalCard({ vehicle, search, dealType }: { vehicle: Vehicle; search: RentalSearchParams; dealType: string }) {
@@ -94,7 +108,7 @@ function RentalCard({ vehicle, search, dealType }: { vehicle: Vehicle; search: R
 
 export function CarsRentalPage({ search }: { search: RentalSearchParams }) {
   const { items, loading, error } = useFleetCollection(bookingVehicles);
-  const [dealType, setDealType] = useState(search.dealType === "Week Day Deals" ? "Week Day Deals" : "Daily Deals");
+  const [dealType, setDealType] = useState(() => normalizeDealType(search.dealType));
   const [duration, setDuration] = useState(durationOptions[0]);
   const [sort, setSort] = useState<SortOption>("recommended");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -141,6 +155,12 @@ export function CarsRentalPage({ search }: { search: RentalSearchParams }) {
 
   const updateSearchQuery = getQuery(search, undefined, dealType);
   const city = search.pickup?.split(",").slice(-1)[0]?.trim() || "Madurai";
+  const pickupHub =
+    search.pickup?.split(",").slice(0, -1).join(",").trim() || city;
+  const packagePricingNotice =
+    dealType === "Daily Deals"
+      ? "Published daily vehicle rates are shown. Any listed discount comes from the current fleet data."
+      : `${dealType} package pricing is not configured. Published daily vehicle rates are shown without an added discount.`;
 
   return (
     <main className="rental-page">
@@ -150,8 +170,9 @@ export function CarsRentalPage({ search }: { search: RentalSearchParams }) {
           <h1 id="rental-heading">Self-Drive Car Rentals</h1>
           <p>Choose a car that fits the journey, then book with confidence.</p>
           <div className="rental-search-summary__details">
+            {search.name ? <span><b>Customer</b>{search.name}</span> : null}
             <span><b>City</b>{city}</span>
-            <span><b>Pickup hub</b>{search.pickup?.split(",").slice(0, -1).join(",").trim() || "Not selected"}</span>
+            <span><b>Pickup hub</b>{pickupHub}</span>
             <span><b>Pickup</b>{formatSearchDate(search.pickupDate)} · {formatSearchTime(search.pickupTime)}</span>
             <span><b>Drop-off</b>{formatSearchDate(search.returnDate)} · {formatSearchTime(search.returnTime)}</span>
           </div>
@@ -176,8 +197,8 @@ export function CarsRentalPage({ search }: { search: RentalSearchParams }) {
         </aside>
 
         <section className="rental-results" aria-labelledby="results-heading">
-          <div className="rental-results__toolbar"><button className="rental-mobile-filter-toggle" onClick={() => setFiltersOpen((open) => !open)} type="button"><Filter size={15} /> {filtersOpen ? "Hide filters" : "Show filters"}</button><div className="rental-deal-tabs" role="group" aria-label="Deal type"><button aria-pressed={dealType === "Daily Deals"} className={dealType === "Daily Deals" ? "is-selected" : ""} onClick={() => setDealType("Daily Deals")} type="button">Normal</button><button aria-pressed={dealType === "Week Day Deals"} className={dealType === "Week Day Deals" ? "is-selected" : ""} onClick={() => setDealType("Week Day Deals")} type="button">Weekday Deals</button></div><label className="rental-sort">Sort by <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recommended">Recommended</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option></select><ChevronDown aria-hidden="true" size={14} /></label></div>
-          <div className="rental-results__heading"><div><p className="rental-eyebrow">{dealType === "Week Day Deals" ? "WEEKDAY VALUE" : "YOUR DRIVE AWAITS"}</p><h2 id="results-heading">{filteredVehicles.length} Cars available for rental in {city}</h2><p>{loading ? "Loading current availability..." : error ? "Showing the latest saved fleet while live data reconnects." : `${duration} plan · actual EPICDRIVE fleet`}</p></div><button aria-label="Reset filters" className="rental-reset" onClick={clearFilters} type="button"><RotateCcw size={14} /> Reset</button></div>
+          <div className="rental-results__toolbar"><button className="rental-mobile-filter-toggle" onClick={() => setFiltersOpen((open) => !open)} type="button"><Filter size={15} /> {filtersOpen ? "Hide filters" : "Show filters"}</button><div className="rental-deal-tabs" role="group" aria-label="Deal type"><button aria-pressed={dealType === "Daily Deals"} className={dealType === "Daily Deals" ? "is-selected" : ""} onClick={() => setDealType("Daily Deals")} type="button">Daily Deals</button><button aria-pressed={dealType === "Weekday Deals"} className={dealType === "Weekday Deals" ? "is-selected" : ""} onClick={() => setDealType("Weekday Deals")} type="button">Weekday Deals</button><button aria-pressed={dealType === "Monthly Deals"} className={dealType === "Monthly Deals" ? "is-selected" : ""} onClick={() => setDealType("Monthly Deals")} type="button">Monthly Deals</button></div><label className="rental-sort">Sort by <select value={sort} onChange={(event) => setSort(event.target.value as SortOption)}><option value="recommended">Recommended</option><option value="low">Price: Low to High</option><option value="high">Price: High to Low</option></select><ChevronDown aria-hidden="true" size={14} /></label></div>
+          <div className="rental-results__heading"><div><p className="rental-eyebrow">{dealType === "Weekday Deals" ? "WEEKDAY VALUE" : dealType === "Monthly Deals" ? "LONGER JOURNEYS" : "YOUR DRIVE AWAITS"}</p><h2 id="results-heading">{filteredVehicles.length} Cars available for rental in {city}</h2><p>{loading ? "Loading current availability..." : error ? "Showing the latest saved fleet while live data reconnects." : `${duration} plan · actual EPICDRIVE fleet`}</p><p className="rental-pricing-note">{packagePricingNotice}</p></div><button aria-label="Reset filters" className="rental-reset" onClick={clearFilters} type="button"><RotateCcw size={14} /> Reset</button></div>
           {filteredVehicles.length ? <div className="rental-grid">{filteredVehicles.map((vehicle) => <RentalCard dealType={dealType} key={vehicle.id} search={search} vehicle={vehicle} />)}</div> : <div className="rental-empty"><Gauge size={22} /><h3>No vehicles match these filters.</h3><button onClick={clearFilters} type="button">Clear filters</button></div>}
         </section>
       </div>

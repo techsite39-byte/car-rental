@@ -4,14 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  ArrowDownRight,
   ArrowUpRight,
-  CalendarDays,
   CarFront,
   Check,
   CircleDollarSign,
-  Clock3,
-  MessageSquareText,
   Plus,
   Search,
   Trash2,
@@ -29,7 +25,6 @@ import { deals as seedDeals } from "@/data/deals";
 import { siteConfig } from "@/data/site";
 import {
   vehicles as seedVehicles,
-  fleetVehicles as seedFleetVehicles,
   vehicleCategoryLabels,
   type Vehicle,
   type VehicleCategory,
@@ -82,6 +77,7 @@ interface VehicleFormValue {
   image: string;
   available: boolean;
   featured: boolean;
+  showInFleet: boolean;
 }
 
 const emptyVehicle: VehicleFormValue = {
@@ -100,6 +96,7 @@ const emptyVehicle: VehicleFormValue = {
   image: "",
   available: true,
   featured: false,
+  showInFleet: true,
 };
 
 function vehicleToForm(vehicle: Vehicle): VehicleFormValue {
@@ -119,6 +116,7 @@ function vehicleToForm(vehicle: Vehicle): VehicleFormValue {
     image: vehicle.image,
     available: vehicle.available,
     featured: vehicle.featured ?? false,
+    showInFleet: vehicle.showInFleet !== false,
   };
 }
 
@@ -206,7 +204,7 @@ function StatCard({
   detail,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon: typeof CarFront;
   detail: string;
 }) {
@@ -229,11 +227,59 @@ export function AdminWorkspace({ page }: { page: WorkspacePage }) {
     items: vehicles,
     error: vehiclesError,
     loading: vehiclesLoading,
-  } = useFleetCollection(seedFleetVehicles, { includeHidden: true });
-  const { items: bookings, error: bookingsError } = useAdminCollection(
+  } = useFleetCollection([], { includeHidden: true });
+  const { items: localBookings, error: localBookingsError } = useAdminCollection(
     adminRepositories.bookings,
     [],
   );
+  const [remoteBookings, setRemoteBookings] = useState<BookingRequest[]>([]);
+  const [remoteBookingsError, setRemoteBookingsError] = useState("");
+  const [remoteBookingsLoaded, setRemoteBookingsLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/bookings", { cache: "no-store" })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(payload?.error ?? "Unable to load saved bookings.");
+        const mapped = Array.isArray(payload?.bookings)
+          ? payload.bookings.map((booking: Record<string, unknown>) => ({
+              id: String(booking.bookingReference ?? booking.bookingId ?? booking._id),
+              customerName: String(booking.customerName ?? ""),
+              email: String(booking.customerEmail ?? ""),
+              phone: String(booking.customerPhone ?? ""),
+              vehicleId: String(booking.vehicleId ?? ""),
+              vehicleName: String(booking.vehicleName ?? ""),
+              vehicleSlug: String(booking.vehicleId ?? ""),
+              pickupLocation: String(booking.pickupLocation ?? ""),
+              returnLocation: String(booking.returnLocation ?? ""),
+              pickupDate: String(booking.pickupDateTime ?? ""),
+              returnDate: String(booking.returnDateTime ?? ""),
+              driverPreference: booking.rentalType === "chauffeur" ? "chauffeur" : "self-drive",
+              submittedAt: String(booking.createdAt ?? ""),
+              status: booking.status === "cancelled" ? "cancelled" : booking.status === "confirmed" ? "reviewed" : "pending",
+              bookingId: String(booking.bookingId ?? booking.bookingReference ?? ""),
+              totalAmount: Number(booking.totalAmount ?? 0),
+              advanceAmount: Number(booking.advanceAmount ?? 500),
+              remainingAmount: Number(booking.remainingAmount ?? 0),
+              paymentStatus: String(booking.paymentStatus ?? "pending"),
+            })) as BookingRequest[]
+          : [];
+        if (active) {
+          setRemoteBookings(mapped);
+          setRemoteBookingsLoaded(true);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setRemoteBookingsError(cause instanceof Error ? cause.message : "Unable to load saved bookings.");
+          setRemoteBookingsLoaded(true);
+        }
+      });
+    return () => { active = false; };
+  }, []);
+  const bookings = remoteBookingsLoaded ? remoteBookings : localBookings;
+  const bookingsError = remoteBookingsError || localBookingsError;
   const { items: enquiries, error: enquiriesError } = useAdminCollection(
     adminRepositories.enquiries,
     [],
@@ -248,20 +294,16 @@ export function AdminWorkspace({ page }: { page: WorkspacePage }) {
       case "overview":
         return (
           <Overview
-            bookings={bookings}
-            bookingsError={bookingsError}
-            deals={deals}
-            dealsError={dealsError}
-            enquiries={enquiries}
-            enquiriesError={enquiriesError}
             vehicles={vehicles}
             vehiclesError={vehiclesError}
+            vehiclesLoading={vehiclesLoading}
           />
         );
       case "fleet":
         return (
           <FleetManagement
             error={vehiclesError}
+            loading={vehiclesLoading}
             vehicles={vehicles}
             onDelete={(vehicle) => {
               if (
@@ -336,94 +378,49 @@ export function AdminWorkspace({ page }: { page: WorkspacePage }) {
 
 function Overview({
   vehicles,
-  bookings,
-  enquiries,
-  deals,
   vehiclesError,
-  bookingsError,
-  enquiriesError,
-  dealsError,
+  vehiclesLoading,
 }: {
   vehicles: Vehicle[];
-  bookings: BookingRequest[];
-  enquiries: ContactEnquiry[];
-  deals: ManagedDeal[];
   vehiclesError: string;
-  bookingsError: string;
-  enquiriesError: string;
-  dealsError: string;
+  vehiclesLoading: boolean;
 }) {
-  const recentBookings = [...bookings]
-    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-    .slice(0, 4);
-  const recentEnquiries = [...enquiries]
-    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-    .slice(0, 4);
-  const available = vehicles.filter(({ available: isAvailable }) => isAvailable);
+  const publicVehicles = vehicles.filter(({ showInFleet }) => showInFleet !== false);
+  const availableVehicles = publicVehicles.filter(({ available }) => available);
+  const hiddenVehicles = vehicles.length - publicVehicles.length;
 
   return (
     <>
-      <div className="admin-prototype-banner">
-        <span aria-hidden="true" />
-        <p>
-          <strong>Fleet management is connected.</strong> Other prototype admin
-          sections still use browser-local records and have separate storage.
-        </p>
-      </div>
       <PageIntro
-        description="A snapshot of the MongoDB fleet and local prototype records."
+        description="A live snapshot of vehicles stored in the shared fleet catalogue."
         eyebrow="YOUR BUSINESS AT A GLANCE"
         title="Good day. Here’s the latest."
         action={
           <span className="admin-date-chip">
-            <Clock3 aria-hidden="true" size={15} />
-            Local data
+            <Check aria-hidden="true" size={15} />
+            Live fleet data
           </span>
         }
       />
-      {(vehiclesError || bookingsError || enquiriesError || dealsError) && (
-        <ErrorNotice>
-          {[vehiclesError, bookingsError, enquiriesError, dealsError]
-            .filter(Boolean)
-            .join(" ")}
-        </ErrorNotice>
-      )}
+      {vehiclesError ? <ErrorNotice>{vehiclesError}</ErrorNotice> : null}
       <div className="admin-stats-grid">
         <StatCard
-          detail="Website fleet records"
+          detail="Shown in the public fleet"
           icon={CarFront}
-          label="Total vehicles"
-          value={vehicles.length}
+          label="Public vehicles"
+          value={vehiclesError ? "—" : vehiclesLoading ? "…" : publicVehicles.length}
         />
         <StatCard
-          detail="Currently bookable"
+          detail="Available to request"
           icon={Check}
           label="Available vehicles"
-          value={available.length}
+          value={vehiclesError ? "—" : vehiclesLoading ? "…" : availableVehicles.length}
         />
         <StatCard
-          detail="Not yet confirmed"
-          icon={CalendarDays}
-          label="Booking requests"
-          value={bookings.length}
-        />
-        <StatCard
-          detail="Awaiting first review"
-          icon={ArrowDownRight}
-          label="Pending requests"
-          value={bookings.filter(({ status }) => status === "pending").length}
-        />
-        <StatCard
-          detail="Submitted through contact"
-          icon={MessageSquareText}
-          label="Contact enquiries"
-          value={enquiries.length}
-        />
-        <StatCard
-          detail="Visible on the public deals section"
-          icon={CircleDollarSign}
-          label="Active deals"
-          value={deals.filter(({ active }) => active).length}
+          detail="Hidden from public fleet pages"
+          icon={CarFront}
+          label="Unpublished vehicles"
+          value={vehiclesError ? "—" : vehiclesLoading ? "…" : hiddenVehicles}
         />
       </div>
 
@@ -433,70 +430,73 @@ function Overview({
           <span><strong>Add a vehicle</strong><small>Grow your fleet</small></span>
           <ArrowUpRight aria-hidden="true" size={17} />
         </Link>
-        <Link href="/admin/deals">
-          <span className="admin-quick-actions__icon"><CircleDollarSign size={17} /></span>
-          <span><strong>Manage deals</strong><small>Review active offers</small></span>
+        <Link href="/admin/fleet">
+          <span className="admin-quick-actions__icon"><CarFront size={17} /></span>
+          <span><strong>Review public fleet</strong><small>Check listings and visibility</small></span>
           <ArrowUpRight aria-hidden="true" size={17} />
         </Link>
-        <Link href="/admin/bookings">
-          <span className="admin-quick-actions__icon"><CalendarDays size={17} /></span>
-          <span><strong>View bookings</strong><small>Review new requests</small></span>
+        <Link href="/admin/deals">
+          <span className="admin-quick-actions__icon"><CircleDollarSign size={17} /></span>
+          <span><strong>Manage deals</strong><small>Review active public offers</small></span>
           <ArrowUpRight aria-hidden="true" size={17} />
         </Link>
       </div>
 
-      <div className="admin-overview-grid">
-        <section className="admin-panel">
-          <div className="admin-panel__heading">
-            <div><p className="admin-eyebrow">LATEST ACTIVITY</p><h3>Booking requests</h3></div>
-            <Link href="/admin/bookings">View all <ArrowUpRight size={14} /></Link>
-          </div>
-          {recentBookings.length ? (
-            <div className="admin-activity-list">
-              {recentBookings.map((booking) => (
-                <div className="admin-activity-row" key={booking.id}>
-                  <span className="admin-activity-row__icon"><CalendarDays size={16} /></span>
-                  <div><strong>{booking.customerName}</strong><span>{booking.vehicleName} · {booking.pickupDate}</span></div>
-                  <StatusBadge status={booking.status} />
+      <section className="admin-panel">
+        <div className="admin-panel__heading">
+          <div><p className="admin-eyebrow">PUBLIC FLEET</p><h3>Vehicles on the website</h3></div>
+          <Link href="/fleet">View website <ArrowUpRight size={14} /></Link>
+        </div>
+        {vehiclesError ? (
+          <EmptyState title="Fleet data unavailable" detail="The shared fleet catalogue could not be loaded." />
+        ) : vehiclesLoading ? (
+          <p className="admin-muted" role="status">Loading the current public fleet…</p>
+        ) : publicVehicles.length ? (
+          <div className="admin-public-preview-list">
+            {publicVehicles.slice(0, 4).map((vehicle) => (
+              <article className="admin-public-preview-row" key={vehicle.id}>
+                <VehicleImage vehicle={vehicle} />
+                <div className="admin-public-preview-row__content">
+                  <strong>{vehicle.name}</strong>
+                  <span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)} / day</span>
                 </div>
-              ))}
-            </div>
-          ) : <EmptyState title="No booking requests yet" detail="Submitted requests will appear here. They are not confirmed reservations." />}
-        </section>
-        <section className="admin-panel">
-          <div className="admin-panel__heading">
-            <div><p className="admin-eyebrow">LATEST ACTIVITY</p><h3>Recent enquiries</h3></div>
-            <Link href="/admin/enquiries">View all <ArrowUpRight size={14} /></Link>
+                <StatusBadge status={vehicle.available ? "available" : "unavailable"} />
+                <Link aria-label={`Edit ${vehicle.name}`} href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>
+                  <ArrowUpRight aria-hidden="true" size={16} />
+                </Link>
+              </article>
+            ))}
           </div>
-          {recentEnquiries.length ? (
-            <div className="admin-activity-list">
-              {recentEnquiries.map((enquiry) => (
-                <div className="admin-activity-row" key={enquiry.id}>
-                  <span className="admin-activity-row__icon"><MessageSquareText size={16} /></span>
-                  <div><strong>{enquiry.name}</strong><span>{enquiry.subject} · {displayDate(enquiry.submittedAt)}</span></div>
-                  <StatusBadge status={enquiry.status} />
-                </div>
-              ))}
-            </div>
-          ) : <EmptyState title="No enquiries yet" detail="Contact form submissions will appear here." />}
-        </section>
-      </div>
+        ) : <EmptyState title="No public vehicles" detail="Vehicles marked as visible in the fleet editor will appear here." />}
+      </section>
 
       <section className="admin-panel admin-availability">
         <div className="admin-panel__heading">
-          <div><p className="admin-eyebrow">FLEET OVERVIEW</p><h3>Availability at a glance</h3></div>
+          <div><p className="admin-eyebrow">PUBLIC FLEET</p><h3>Availability at a glance</h3></div>
           <Link href="/admin/fleet">Manage fleet <ArrowUpRight size={14} /></Link>
         </div>
         <div className="admin-availability__summary">
-          <strong>{available.length}<span> / {vehicles.length}</span></strong>
-          <span>vehicles currently available</span>
+          <strong>{vehiclesError ? "—" : vehiclesLoading ? "…" : availableVehicles.length}<span> / {vehiclesError ? "—" : vehiclesLoading ? "…" : publicVehicles.length}</span></strong>
+          <span>published vehicles available to request</span>
         </div>
-        <div className="admin-availability__track" aria-label={`${available.length} of ${vehicles.length} vehicles available`}>
-          <span style={{ width: vehicles.length ? `${(available.length / vehicles.length) * 100}%` : "0%" }} />
-        </div>
-        <p className="admin-muted">Availability reflects the current fleet setting only, not date-specific reservations.</p>
+        {!vehiclesError ? (
+          <div
+            aria-label={vehiclesLoading
+              ? "Loading public fleet availability"
+              : `${availableVehicles.length} of ${publicVehicles.length} public vehicles available`}
+            className="admin-availability__track"
+          >
+            <span
+              style={{
+                width: !vehiclesLoading && publicVehicles.length
+                  ? `${(availableVehicles.length / publicVehicles.length) * 100}%`
+                  : "0%",
+              }}
+            />
+          </div>
+        ) : null}
+        <p className="admin-muted">This matches the website&apos;s current availability setting; it does not reserve vehicles for specific dates.</p>
       </section>
-      <DataNotice>Vehicles and deals begin with website seed content. Booking and enquiry counts include only requests submitted in this browser; no activity or revenue is fabricated.</DataNotice>
     </>
   );
 }
@@ -512,15 +512,18 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
 function FleetManagement({
   vehicles,
   error,
+  loading,
   onDelete,
 }: {
   vehicles: Vehicle[];
   error: string;
+  loading: boolean;
   onDelete: (vehicle: Vehicle) => void;
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [availability, setAvailability] = useState("all");
+  const [visibility, setVisibility] = useState("all");
   const filtered = vehicles.filter((vehicle) => {
     const matchesSearch = `${vehicle.brand} ${vehicle.name} ${vehicle.slug}`
       .toLowerCase()
@@ -529,7 +532,9 @@ function FleetManagement({
       matchesSearch &&
       (category === "all" || vehicle.category === category) &&
       (availability === "all" ||
-        String(vehicle.available) === availability)
+        String(vehicle.available) === availability) &&
+      (visibility === "all" ||
+        String(vehicle.showInFleet !== false) === visibility)
     );
   });
 
@@ -542,33 +547,39 @@ function FleetManagement({
         action={<Link className="admin-button admin-button--primary" href="/admin/fleet/new"><Plus size={16} /> Add vehicle</Link>}
       />
       {error ? <ErrorNotice>{error}</ErrorNotice> : null}
-      <section className="admin-panel">
+      <section className="admin-panel admin-fleet-panel">
         <div className="admin-filters">
           <label className="admin-search"><Search aria-hidden="true" size={16} /><span className="visually-hidden">Search fleet</span><input onChange={(event) => setSearch(event.target.value)} placeholder="Search vehicles..." value={search} /></label>
           <label className="admin-select-label"><span className="visually-hidden">Filter by category</span><select onChange={(event) => setCategory(event.target.value)} value={category}><option value="all">All categories</option>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label className="admin-select-label"><span className="visually-hidden">Filter by availability</span><select onChange={(event) => setAvailability(event.target.value)} value={availability}><option value="all">All availability</option><option value="true">Available</option><option value="false">Unavailable</option></select></label>
+          <label className="admin-select-label"><span className="visually-hidden">Filter by website visibility</span><select onChange={(event) => setVisibility(event.target.value)} value={visibility}><option value="all">All website visibility</option><option value="true">Shown on website</option><option value="false">Hidden from website</option></select></label>
         </div>
-        {filtered.length ? (
+        {loading ? (
+          <p className="admin-muted" role="status">Loading the shared fleet catalogue…</p>
+        ) : error ? (
+          <EmptyState title="Fleet data unavailable" detail="The shared fleet catalogue could not be loaded." />
+        ) : filtered.length ? (
           <>
             <div className="admin-table-wrap">
               <table className="admin-table">
-                <thead><tr><th>Vehicle</th><th>Category</th><th>Price / day</th><th>Availability</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
+                <thead><tr><th>Vehicle</th><th>Category</th><th>Price / day</th><th>Availability</th><th>Website</th><th><span className="visually-hidden">Actions</span></th></tr></thead>
                 <tbody>{filtered.map((vehicle) => (
                   <tr key={vehicle.id}>
                     <td><div className="admin-vehicle-cell"><VehicleImage vehicle={vehicle} /><span><strong>{vehicle.name}</strong><small>{vehicle.slug}</small></span></div></td>
                     <td>{categoryLabels[vehicle.category]}</td>
                     <td>{formatINR(vehicle.pricePerDay)}</td>
                     <td><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></td>
+                    <td><StatusBadge status={vehicle.showInFleet === false ? "unpublished" : "published"} /></td>
                     <td><div className="admin-row-actions"><Link aria-label={`Edit ${vehicle.name}`} className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></td>
                   </tr>
                 ))}</tbody>
               </table>
             </div>
-            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)}/day</span><StatusBadge status={vehicle.available ? "available" : "unavailable"} /></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
+            <div className="admin-mobile-cards">{filtered.map((vehicle) => <article className="admin-mobile-vehicle" key={vehicle.id}><VehicleImage vehicle={vehicle} /><div><strong>{vehicle.name}</strong><span>{categoryLabels[vehicle.category]} · {formatINR(vehicle.pricePerDay)}/day</span><div className="admin-mobile-vehicle__statuses"><StatusBadge status={vehicle.available ? "available" : "unavailable"} /><StatusBadge status={vehicle.showInFleet === false ? "unpublished" : "published"} /></div></div><div className="admin-row-actions"><Link className="admin-button admin-button--quiet" href={`/admin/fleet/${encodeURIComponent(vehicle.id)}/edit`}>Edit</Link><button aria-label={`Delete ${vehicle.name}`} className="admin-icon-button admin-delete-button" onClick={() => onDelete(vehicle)} type="button"><Trash2 size={16} /></button></div></article>)}</div>
           </>
         ) : <EmptyState title="No vehicles match" detail="Try changing your search or filters." />}
       </section>
-      <DataNotice>Seed vehicles are migrated into MongoDB by slug. Deleting a vehicle archives it from the public fleet and booking selector.</DataNotice>
+      <DataNotice>Website visibility controls whether the vehicle appears in public fleet listings. Availability controls whether it can be requested; these are separate settings. Deleting a vehicle archives it from the public fleet and booking selector.</DataNotice>
     </>
   );
 }
@@ -715,7 +726,7 @@ function VehicleForm({
           description: form.description.trim(),
           available: form.available,
           featured: form.featured,
-          showInFleet: existing?.showInFleet ?? true,
+          showInFleet: form.showInFleet,
         };
         const response = await fetch(
           isNew ? "/api/fleet" : `/api/fleet/${encodeURIComponent(id)}`,
@@ -794,6 +805,7 @@ function VehicleForm({
     imagePlaceholder: imagePreview || form.image,
     available: form.available,
     featured: form.featured,
+    showInFleet: form.showInFleet,
   };
 
   function selectImage(file: File | undefined, input: HTMLInputElement) {
@@ -849,6 +861,7 @@ function VehicleForm({
           <section className="admin-panel admin-form-section">
             <div className="admin-form-section__title"><h3>Visibility and status</h3><p>Availability is a manual setting, not date-aware inventory.</p></div>
             <label className="admin-toggle-row"><span><strong>Available</strong><small>Allow this vehicle to be requested on the public site.</small></span><input checked={form.available} onChange={(event) => change("available", event.target.checked)} type="checkbox" /></label>
+            <label className="admin-toggle-row"><span><strong>Show on public website</strong><small>Include this vehicle in public fleet listings and booking selection.</small></span><input checked={form.showInFleet} onChange={(event) => change("showInFleet", event.target.checked)} type="checkbox" /></label>
             <label className="admin-toggle-row"><span><strong>Featured</strong><small>Mark this vehicle as featured in admin records.</small></span><input checked={form.featured} onChange={(event) => change("featured", event.target.checked)} type="checkbox" /></label>
           </section>
           {formError ? <ErrorNotice>{formError}</ErrorNotice> : null}
@@ -912,12 +925,12 @@ function BookingsManagement({
 
   return (
     <>
-      <PageIntro description="Review local booking requests. A request is not a confirmed reservation." eyebrow="REQUESTS" title="Booking requests" />
-      <DataNotice>Submissions are private to this browser profile and are not transmitted to a server. Status changes never confirm a reservation.</DataNotice>
+      <PageIntro description="Review booking and payment records saved in MongoDB." eyebrow="REQUESTS" title="Booking requests" />
+      <DataNotice>Bookings are loaded from the protected booking API. Payment status is verified by the backend.</DataNotice>
       {(error || vehiclesError) ? <ErrorNotice>{[error, vehiclesError].filter(Boolean).join(" ")}</ErrorNotice> : null}
       <section className="admin-panel">
         <div className="admin-filters"><label className="admin-search"><Search size={16} /><span className="visually-hidden">Search booking requests</span><input onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email or vehicle..." value={search} /></label></div>
-        {filtered.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Customer / vehicle</th><th>Journey</th><th>Dates / driver</th><th>Submitted</th><th>Status</th></tr></thead><tbody>{filtered.map((booking) => <tr key={booking.id}><td><strong>{booking.customerName}</strong><small className="admin-table__sub">{booking.email}{booking.phone ? ` · ${booking.phone}` : ""}</small><span className="admin-table__sub">{booking.vehicleName}</span></td><td>{booking.pickupLocation}<span className="admin-table__sub">to {booking.returnLocation}</span></td><td>{booking.pickupDate}<span className="admin-table__sub">to {booking.returnDate} · {booking.driverPreference === "self-drive" ? "Self drive" : "Chauffeur"}</span></td><td>{displayDate(booking.submittedAt)}</td><td><label className="visually-hidden" htmlFor={`booking-status-${booking.id}`}>Status for {booking.customerName}</label><select className="admin-status-select" id={`booking-status-${booking.id}`} onChange={(event) => updateStatus(booking.id, event.target.value as BookingStatus)} value={booking.status}><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="cancelled">Cancelled</option></select></td></tr>)}</tbody></table></div> : <EmptyState title="No booking requests yet" detail="Public booking form submissions will be listed here. No sample customer records are shown." />}
+        {filtered.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Booking</th><th>Customer / vehicle</th><th>Journey</th><th>Dates / driver</th><th>Payment</th><th>Submitted</th><th>Status</th></tr></thead><tbody>{filtered.map((booking) => <tr key={booking.id}><td><strong>{booking.id}</strong></td><td><strong>{booking.customerName}</strong><small className="admin-table__sub">{booking.email}{booking.phone ? ` · ${booking.phone}` : ""}</small><span className="admin-table__sub">{booking.vehicleName}</span></td><td>{booking.pickupLocation}<span className="admin-table__sub">to {booking.returnLocation}</span></td><td>{booking.pickupDate}<span className="admin-table__sub">to {booking.returnDate} · {booking.driverPreference === "self-drive" ? "Self drive" : "Chauffeur"}</span></td><td><strong>{booking.totalAmount ? formatINR(booking.totalAmount) : "—"}</strong><span className="admin-table__sub">Paid {formatINR(booking.advanceAmount ?? 500)} · {booking.paymentStatus ?? "pending"}</span></td><td>{displayDate(booking.submittedAt)}</td><td><label className="visually-hidden" htmlFor={`booking-status-${booking.id}`}>Status for {booking.customerName}</label><select className="admin-status-select" id={`booking-status-${booking.id}`} onChange={(event) => updateStatus(booking.id, event.target.value as BookingStatus)} value={booking.status}><option value="pending">Pending</option><option value="reviewed">Confirmed</option><option value="cancelled">Cancelled</option></select></td></tr>)}</tbody></table></div> : <EmptyState title="No booking requests yet" detail="No booking records are currently available from MongoDB." />}
       </section>
     </>
   );
