@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   async headers() {
     const sequenceCacheHeaders = [
       { key: "Cache-Control", value: "public, max-age=60" },
