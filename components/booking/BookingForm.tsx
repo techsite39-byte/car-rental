@@ -325,8 +325,9 @@ export function BookingForm({ initialContext }: BookingFormProps) {
       nextErrors.customerPhone = "Enter a valid phone number.";
     }
     if (
-      customerEmail.trim().length > 254 ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())
+      customerEmail.trim() &&
+      (customerEmail.trim().length > 254 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()))
     ) {
       nextErrors.customerEmail = "Enter a valid email address.";
     }

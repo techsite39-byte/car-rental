@@ -86,7 +86,7 @@ function validateBookingInput(input, idempotencyKey, fleet = bookingVehicles) {
   if (!/^\+?[0-9\s().-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15) {
     throw new BookingInputError("Enter a valid phone number.");
   }
-  if (!EMAIL_PATTERN.test(email)) {
+  if (email && !EMAIL_PATTERN.test(email)) {
     throw new BookingInputError("Enter a valid email address.");
   }
   if (!pickupLocation || !returnLocation) {

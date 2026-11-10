@@ -75,6 +75,12 @@ test("rejects invalid email and unknown vehicles", () => {
   );
 });
 
+test("allows bookings without an email address", () => {
+  const booking = validateBookingInput(validInput({ email: "" }), idempotencyKey);
+
+  assert.equal(booking.customerEmail, "");
+});
+
 test("malformed input produces a client validation error", () => {
   assert.throws(
     () => validateBookingInput({}, "bad-key"),

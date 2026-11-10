@@ -40,11 +40,15 @@ const bookingSchema = new mongoose.Schema(
     customerPhone: { type: String, required: true, trim: true, maxlength: 30 },
     customerEmail: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       lowercase: true,
       maxlength: 254,
-      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      default: "",
+      validate: {
+        validator: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+        message: "Enter a valid email address.",
+      },
     },
     additionalRequests: { type: String, trim: true, maxlength: 1000, default: "" },
     pickupPreference: {
