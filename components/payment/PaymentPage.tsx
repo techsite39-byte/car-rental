@@ -83,6 +83,9 @@ function amount(value: number | undefined) {
 export function PaymentPage({ context }: { context: PaymentContext }) {
   const [selectedMethod, setSelectedMethod] = useState("upi");
   const [gatewayMessage, setGatewayMessage] = useState("");
+  const [vehicleImage, setVehicleImage] = useState(
+    context.vehicleImage || "/images/vehicles/vehicle-photo-unavailable.svg",
+  );
   const totalAmount = context.totalAmount ?? 0;
   const advanceAmount = context.advanceAmount ?? 500;
   const remainingAmount =
@@ -196,7 +199,7 @@ export function PaymentPage({ context }: { context: PaymentContext }) {
               type="button"
             >
               CONTINUE TO PAYMENT
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">{"→"}</span>
             </button>
             {gatewayMessage ? <p className="payment-gateway-message" role="alert">{gatewayMessage}</p> : null}
             <p className="payment-security-note">
@@ -215,8 +218,15 @@ export function PaymentPage({ context }: { context: PaymentContext }) {
 
             <div className="payment-vehicle">
               <div className="payment-vehicle__image">
-                {context.vehicleImage ? (
-                  <Image alt={displayValue(context.vehicleName, "Selected vehicle")} fill sizes="96px" src={context.vehicleImage} unoptimized />
+                {vehicleImage ? (
+                  <Image
+                    alt={displayValue(context.vehicleName, "Selected vehicle")}
+                    fill
+                    onError={() => setVehicleImage("/images/vehicles/vehicle-photo-unavailable.svg")}
+                    sizes="96px"
+                    src={vehicleImage}
+                    unoptimized
+                  />
                 ) : <span>Vehicle</span>}
               </div>
               <div>

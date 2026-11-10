@@ -1,7 +1,25 @@
 .payment-page {
+  position: relative;
+  isolation: isolate;
   min-height: calc(100svh - 5rem);
   padding: 2.5rem 0 5rem;
-  background: #f7f8fa;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgb(239 27 38 / 8%), transparent 24rem),
+    #f7f8fa;
+}
+
+.payment-page::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  width: 30rem;
+  height: 18rem;
+  border-radius: 0 0 0 100%;
+  background: rgb(25 35 56 / 4%);
+  content: "";
+  pointer-events: none;
 }
 
 .payment-page__loading {
@@ -100,6 +118,11 @@
   border-radius: 1.25rem;
   background: #fff;
   box-shadow: 0 1rem 2.5rem rgb(32 40 59 / 6%);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.payment-card:hover {
+  box-shadow: 0 1.25rem 3rem rgb(32 40 59 / 9%);
 }
 
 .payment-card__heading {
@@ -305,6 +328,15 @@
 
 .payment-vehicle__image img {
   object-fit: contain;
+}
+
+.payment-vehicle__image::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(25 35 56 / 8%);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
 }
 
 .payment-vehicle h3 {
