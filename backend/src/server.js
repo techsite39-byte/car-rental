@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(currentDirectory, "../../.env") });
+dotenv.config({ path: path.resolve(currentDirectory, "../.env") });
 
 import mongoose from "mongoose";
 import { createApp } from "./app.js";

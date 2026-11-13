@@ -56,9 +56,11 @@ storage.
 
 ### Environment variables
 
-Keep local values in the ignored root `.env` file. Do not commit credentials or
-copy production credentials into Git. The backend also loads this root file in
-local development.
+Keep local frontend values in the ignored root `.env` and backend values in
+the ignored `backend/.env`. The backend loads only `backend/.env` in local
+development. Do not commit credentials or copy production credentials into
+Git. Keep the shared `ADMIN_API_TOKEN` and `ADMIN_SESSION_SECRET` values
+consistent between the two files.
 
 | Backend (Render) | Purpose |
 | --- | --- |
@@ -114,7 +116,8 @@ only when MongoDB is connected and `503` while the database is unavailable.
 Set the environment variables above in the Render dashboard; do not put real
 credentials in Git.
 
-For local development, install backend dependencies with
+For local development, set backend values in `backend/.env` and frontend
+server values in the root `.env`. Install backend dependencies with
 `npm ci --prefix backend`, run `npm --prefix backend run dev` from the
 repository root, then start the website with `npm run dev`.
 
