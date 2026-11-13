@@ -80,6 +80,7 @@ async function sendWhatsAppConfirmation(booking, payment) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15_000),
     },
   );
   const body = await response.json().catch(() => null);

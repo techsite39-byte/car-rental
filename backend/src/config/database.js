@@ -12,10 +12,20 @@ async function connectDatabase() {
   if (!/^mongodb(?:\+srv)?:\/\//i.test(uri)) {
     throw new Error("MONGODB_URI must use the mongodb or mongodb+srv protocol.");
   }
+  let parsedUri;
+  try {
+    parsedUri = new URL(uri);
+  } catch {
+    throw new Error("MONGODB_URI must be a valid MongoDB connection string.");
+  }
+  if (!parsedUri.hostname) {
+    throw new Error("MONGODB_URI must include a MongoDB host.");
+  }
 
   await mongoose.connect(uri, {
     dbName: "epicdrive",
-    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10_000,
+    serverSelectionTimeoutMS: 15_000,
   });
   return mongoose.connection;
 }

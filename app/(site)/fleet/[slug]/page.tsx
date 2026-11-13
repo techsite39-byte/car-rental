@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import { VehicleDetailRoute } from "@/components/fleet/VehicleDetailRoute";
 import { fleetVehicles as vehicles, type Vehicle } from "@/data/vehicles";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
 interface VehicleDetailPageProps {
   params: Promise<{ slug: string }>;
@@ -15,10 +19,18 @@ async function getSavedVehicle(slug: string): Promise<Vehicle | undefined> {
   "use cache";
   cacheLife("minutes");
   cacheTag("fleet");
-  const origin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
+  const backendUrl = getBackendApiUrl(
+    `/api/fleet/${encodeURIComponent(slug)}`,
+  );
+  if (!backendUrl) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(BACKEND_API_URL_ERROR);
+    }
+    return undefined;
+  }
   try {
     const response = await fetch(
-      new URL(`/api/fleet/${encodeURIComponent(slug)}`, `${origin.replace(/\/+$/, "")}/`),
+      backendUrl,
       { signal: AbortSignal.timeout(5_000) },
     );
     const payload: unknown = await response.json().catch(() => null);

@@ -1,10 +1,16 @@
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import mongoose from "mongoose";
 import Admin from "../models/Admin.js";
 import Booking from "../models/Booking.js";
 
+const dummyAdminPasswordHash = bcrypt.hash(
+  randomBytes(32).toString("hex"),
+  12,
+);
+
 function authorizedAdminRequest(req) {
-  const configuredToken = process.env.ADMIN_API_TOKEN?.trim() || process.env.ADMIN_SESSION_SECRET?.trim();
+  const configuredToken = process.env.ADMIN_API_TOKEN?.trim();
   return Boolean(configuredToken && req.get("x-admin-api-token") === configuredToken);
 }
 
@@ -19,7 +25,13 @@ async function loginAdmin(req, res) {
   }
 
   const admin = await Admin.findOne({ email }).select("+password name email role isActive googleId");
-  const valid = admin && admin.isActive && admin.role === "admin" && await bcrypt.compare(password, admin.password);
+  const passwordMatches = await bcrypt.compare(
+    password,
+    admin?.password ?? (await dummyAdminPasswordHash),
+  );
+  const valid =
+    Boolean(admin && admin.isActive && admin.role === "admin") &&
+    passwordMatches;
   if (!valid) {
     return res.status(401).json({ error: "Invalid email or password. Please try again." });
   }

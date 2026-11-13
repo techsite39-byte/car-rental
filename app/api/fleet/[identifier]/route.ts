@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { hasAdminSession } from "@/lib/admin-session";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
 const REQUEST_TIMEOUT_MS = 12_000;
 const MAX_BODY_LENGTH = 12_000;
 type RouteContext = { params: Promise<{ identifier: string }> };
 
 async function backendRequest(path: string, method: string, body?: string) {
-  const origin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
-  const url = new URL(path, `${origin.replace(/\/+$/, "")}/`);
+  const url = getBackendApiUrl(path);
+  if (!url) {
+    return NextResponse.json(
+      { error: BACKEND_API_URL_ERROR },
+      { status: 503 },
+    );
+  }
   const headers = new Headers();
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (method !== "GET") {

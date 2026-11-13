@@ -367,6 +367,7 @@ async function createPaymentOrder(req, res, next) {
       method: "POST",
       headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
       body: JSON.stringify({ amount: amount * 100, currency: "INR", receipt: bookingReference, notes: { bookingReference, paymentType } }),
+      signal: AbortSignal.timeout(15_000),
     });
     const order = await gatewayResponse.json().catch(() => null);
     if (!gatewayResponse.ok || !order?.id) return res.status(502).json({ error: "Payment order could not be created." });
@@ -409,7 +410,10 @@ async function verifyPayment(req, res, next) {
     if (signed !== signature) return res.status(400).json({ error: "Payment verification failed." });
 
     const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${keySecret}`).toString("base64");
-    const gatewayResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: `Basic ${auth}` } });
+    const gatewayResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+      headers: { Authorization: `Basic ${auth}` },
+      signal: AbortSignal.timeout(15_000),
+    });
     const gatewayPayment = await gatewayResponse.json().catch(() => null);
     if (
       !gatewayResponse.ok ||

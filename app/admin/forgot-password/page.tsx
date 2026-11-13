@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("yourssanjay63@gmail.com");
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
 

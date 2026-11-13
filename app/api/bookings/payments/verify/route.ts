@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
 export async function POST(request: Request) {
-  const backendOrigin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
+  const backendUrl = getBackendApiUrl("/api/bookings/payments/verify");
+  if (!backendUrl) {
+    return NextResponse.json({ error: BACKEND_API_URL_ERROR }, { status: 503 });
+  }
   try {
-    const response = await fetch(`${backendOrigin.replace(/\/+$/, "")}/api/bookings/payments/verify`, {
+    const response = await fetch(backendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(await request.json()),

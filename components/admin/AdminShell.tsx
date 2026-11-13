@@ -131,7 +131,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
               <form onSubmit={signIn}>
                 <label className="admin-field" htmlFor="admin-email">
                   <span>Email</span>
-                  <input autoComplete="username" defaultValue="yourssanjay63@gmail.com" id="admin-email" name="email" required type="email" />
+                  <input autoComplete="username" id="admin-email" name="email" required type="email" />
                 </label>
                 <label className="admin-field" htmlFor="admin-password">
                   <span>Password</span>

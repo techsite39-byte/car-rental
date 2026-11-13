@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
 const MAX_BODY_LENGTH = 12_000;
 const BACKEND_TIMEOUT_MS = 12_000;
@@ -24,11 +28,14 @@ async function readLimitedBody(request: Request) {
   }
 }
 
-function unavailableResponse() {
+function unavailableResponse(
+  message = "Booking confirmation is temporarily unavailable.",
+  code = "database_unavailable",
+) {
   return NextResponse.json(
     {
-      code: "database_unavailable",
-      error: "Booking confirmation is temporarily unavailable.",
+      code,
+      error: message,
     },
     { status: 503 },
   );
@@ -58,13 +65,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const backendOrigin =
-    process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
-  let backendUrl: URL;
-  try {
-    backendUrl = new URL("/api/bookings", `${backendOrigin.replace(/\/+$/, "")}/`);
-  } catch {
-    return unavailableResponse();
+  const backendUrl = getBackendApiUrl("/api/bookings");
+  if (!backendUrl) {
+    return unavailableResponse(BACKEND_API_URL_ERROR, "backend_not_configured");
   }
 
   try {

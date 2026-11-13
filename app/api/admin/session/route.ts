@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import {
   ADMIN_SESSION_COOKIE,
@@ -6,45 +5,82 @@ import {
   createAdminSessionToken,
   hasAdminSession,
 } from "@/lib/admin-session";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
-const DEFAULT_ADMIN_PASSWORD_HASH =
-  "$2b$12$mZWyEV.THzfBX2Mava0S/.7CANeLu9YErQoXMtVC/W3yWNgzExJ6e";
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS_PER_CLIENT = 10;
+const MAX_TRACKED_CLIENTS = 2_000;
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
-async function credentialsMatch(email: unknown, password: unknown) {
-  const configuredEmail =
-    process.env.ADMIN_EMAIL?.trim().replace(/^['"]|['"]$/g, "").toLowerCase() ||
-    "yourssanjay63@gmail.com";
-  if (
-    typeof email !== "string" ||
-    email.trim().toLowerCase() !== configuredEmail ||
-    typeof password !== "string"
-  ) {
-    return false;
+function loginAttemptKeys(request: Request) {
+  const forwardedFor = request.headers
+    .get("x-forwarded-for")
+    ?.split(",")
+    .map((address) => address.trim())
+    .filter(Boolean);
+  const clientAddress =
+    forwardedFor?.[0] || request.headers.get("x-real-ip")?.trim() || "unknown";
+  return [`client:${clientAddress}`];
+}
+
+function pruneExpiredLoginAttempts(now: number) {
+  for (const [key, bucket] of loginAttempts) {
+    if (bucket.resetAt <= now) loginAttempts.delete(key);
   }
+}
 
-  const configuredHash = process.env.ADMIN_PASSWORD_HASH?.trim() || "";
-  const usableHash = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(configuredHash)
-    ? configuredHash
-    : DEFAULT_ADMIN_PASSWORD_HASH;
-  return bcrypt.compare(password, usableHash);
+function blockedUntil(keys: string[], now: number) {
+  pruneExpiredLoginAttempts(now);
+  return keys.reduce<number | null>((latest, key) => {
+    const bucket = loginAttempts.get(key);
+    return bucket && bucket.count >= MAX_ATTEMPTS_PER_CLIENT
+      ? Math.max(latest ?? 0, bucket.resetAt)
+      : latest;
+  }, null);
+}
+
+function recordFailedLogin(keys: string[], now: number) {
+  pruneExpiredLoginAttempts(now);
+  for (const key of keys) {
+    const bucket = loginAttempts.get(key);
+    if (!bucket && loginAttempts.size >= MAX_TRACKED_CLIENTS) continue;
+    loginAttempts.set(
+      key,
+      bucket
+        ? { ...bucket, count: bucket.count + 1 }
+        : { count: 1, resetAt: now + LOGIN_WINDOW_MS },
+    );
+  }
+}
+
+function resetLoginAttempts(keys: string[]) {
+  for (const key of keys) loginAttempts.delete(key);
 }
 
 async function verifyWithBackend(email: unknown, password: unknown) {
-  const backendUrl = process.env.BOOKING_API_URL?.trim();
-  if (typeof email !== "string" || typeof password !== "string" || !backendUrl) return null;
+  const backendUrl = getBackendApiUrl("/api/admin/login");
+  if (!backendUrl) return "unavailable";
+  if (typeof email !== "string" || typeof password !== "string") {
+    return "rejected";
+  }
+
   try {
-    const response = await fetch(`${backendUrl.replace(/\/$/, "")}/api/admin/login`, {
+    const response = await fetch(backendUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
       cache: "no-store",
       signal: AbortSignal.timeout(3500),
     });
-    if (response.ok) return true;
-    if (response.status === 401 || response.status === 400) return false;
-    return null;
+    if (response.ok) return "authenticated";
+    if (response.status === 401 || response.status === 400) return "rejected";
+    if (response.status === 429) return "rate_limited";
+    return "unavailable";
   } catch {
-    return null;
+    return "unavailable";
   }
 }
 
@@ -69,12 +105,16 @@ export async function POST(request: Request) {
   if (!sameOrigin(request)) {
     return NextResponse.json({ error: "Invalid request origin." }, { status: 403 });
   }
-  if (
-    (!process.env.ADMIN_PASSWORD_HASH && !process.env.ADMIN_PASSWORD) ||
-    !process.env.ADMIN_SESSION_SECRET
-  ) {
+  const sessionSecret = process.env.ADMIN_SESSION_SECRET?.trim();
+  const adminApiToken = process.env.ADMIN_API_TOKEN?.trim();
+  const backendUrl = getBackendApiUrl("/api/admin/login");
+  if (!sessionSecret || sessionSecret.length < 32 || !adminApiToken || !backendUrl) {
     return NextResponse.json(
-      { error: "Admin access is not configured on the server." },
+      {
+        error: !backendUrl
+          ? BACKEND_API_URL_ERROR
+          : "Admin access is not configured on the server.",
+      },
       { status: 503 },
     );
   }
@@ -91,15 +131,44 @@ export async function POST(request: Request) {
     typeof body === "object" && body !== null && "password" in body ? body.password : undefined;
   const remember =
     typeof body === "object" && body !== null && "remember" in body && body.remember === true;
-  const backendMatch = await verifyWithBackend(email, password);
-  const validCredentials =
-    backendMatch === null ? await credentialsMatch(email, password) : backendMatch;
-  if (!validCredentials) {
+  const attemptKeys = loginAttemptKeys(request);
+  const now = Date.now();
+  const resetAt = blockedUntil(attemptKeys, now);
+  if (resetAt !== null) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Please try again later." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.max(1, Math.ceil((resetAt - now) / 1000))) },
+      },
+    );
+  }
+
+  const backendResult = await verifyWithBackend(email, password);
+  if (backendResult === "rate_limited") {
+    return NextResponse.json(
+      { error: "Too many login attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
+  if (backendResult === "unavailable") {
+    return NextResponse.json(
+      {
+        error: !getBackendApiUrl("/api/admin/login")
+          ? BACKEND_API_URL_ERROR
+          : "Admin authentication is temporarily unavailable.",
+      },
+      { status: 503 },
+    );
+  }
+  if (backendResult !== "authenticated") {
+    recordFailedLogin(attemptKeys, now);
     return NextResponse.json(
       { error: "Invalid email or password. Please try again." },
       { status: 401 },
     );
   }
+  resetLoginAttempts(attemptKeys);
 
   let token: string;
   try {

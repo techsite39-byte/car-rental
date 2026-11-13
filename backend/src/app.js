@@ -7,25 +7,61 @@ import fleetRoutes from "./routes/fleetRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
-function configuredFrontendOrigin() {
-  const value = process.env.FRONTEND_URL?.trim() || "http://localhost:3000";
-  return new URL(value).origin;
+function configuredFrontendOrigins() {
+  const value = process.env.FRONTEND_URL?.trim();
+  const origins = new Set();
+  if (value) {
+    let url;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new Error("FRONTEND_URL must be an absolute HTTP(S) origin.");
+    }
+    if (
+      !["http:", "https:"].includes(url.protocol) ||
+      (process.env.NODE_ENV === "production" && url.protocol !== "https:") ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error("FRONTEND_URL must be an absolute HTTP(S) origin.");
+    }
+    origins.add(url.origin);
+  } else if (process.env.NODE_ENV === "production") {
+    throw new Error("FRONTEND_URL must be configured in production.");
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:3000");
+  }
+  return origins;
 }
 
 function createApp() {
+  const frontendOrigins = configuredFrontendOrigins();
   const app = express();
+  app.set("trust proxy", 1);
   app.disable("x-powered-by");
   app.use(helmet());
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || origin === configuredFrontendOrigin()) {
+        if (!origin || frontendOrigins.has(origin)) {
           return callback(null, true);
         }
         return callback(new Error("Not allowed by CORS."));
       },
-      methods: ["GET", "POST", "OPTIONS"],
-      allowedHeaders: ["Authorization", "Content-Type", "Idempotency-Key"],
+      methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Authorization",
+        "Content-Type",
+        "Idempotency-Key",
+        "X-Admin-API-Key",
+        "X-Admin-API-Token",
+      ],
       maxAge: 600,
     }),
   );

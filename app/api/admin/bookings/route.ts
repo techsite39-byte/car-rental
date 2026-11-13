@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { hasAdminSession } from "@/lib/admin-session";
+import {
+  BACKEND_API_URL_ERROR,
+  getBackendApiUrl,
+} from "@/lib/backend-api-url";
 
 export async function GET() {
   if (!(await hasAdminSession())) return NextResponse.json({ error: "Admin authorization required." }, { status: 401 });
-  const backendOrigin = process.env.BOOKING_API_URL?.trim() || "http://localhost:5000";
-  const token = process.env.ADMIN_API_TOKEN?.trim() || process.env.ADMIN_SESSION_SECRET?.trim();
+  const backendUrl = getBackendApiUrl("/api/admin/bookings");
+  if (!backendUrl) return NextResponse.json({ error: BACKEND_API_URL_ERROR }, { status: 503 });
+  const token = process.env.ADMIN_API_TOKEN?.trim();
   if (!token) return NextResponse.json({ error: "Admin API is not configured." }, { status: 503 });
   try {
-    const response = await fetch(`${backendOrigin.replace(/\/+$/, "")}/api/admin/bookings`, {
+    const response = await fetch(backendUrl, {
       headers: { "x-admin-api-token": token },
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),

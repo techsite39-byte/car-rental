@@ -1,33 +1,47 @@
 import bcrypt from "bcryptjs";
 import Admin from "../models/Admin.js";
 
-const DEFAULT_ADMIN_EMAIL = "yourssanjay63@gmail.com";
-const DEFAULT_ADMIN_PASSWORD = "admin123456#";
+export function adminSeedConfig() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_INITIAL_PASSWORD;
+  if (!email || !password?.trim()) {
+    throw new Error(
+      "ADMIN_EMAIL and ADMIN_INITIAL_PASSWORD must be configured before admin bootstrap.",
+    );
+  }
 
-function adminSeedConfig() {
   return {
-    email: (process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL).trim().toLowerCase(),
-    password: process.env.ADMIN_INITIAL_PASSWORD || process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD,
+    email,
+    password,
     name: process.env.ADMIN_INITIAL_NAME?.trim() || "Super Admin",
   };
 }
 
 async function seedInitialAdmin() {
   const { email, password, name } = adminSeedConfig();
-  const existing = await Admin.findOne({ email }).select("_id").lean();
+  const existing = await Admin.findOne({}).select("_id email").lean();
   if (existing) {
-    return { created: false, email };
+    return { created: false, email: existing.email };
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  await Admin.create({
-    name,
-    email,
-    password: passwordHash,
-    role: "admin",
-    isActive: true,
-  });
-  return { created: true, email };
+  try {
+    await Admin.create({
+      name,
+      email,
+      password: passwordHash,
+      role: "admin",
+      isActive: true,
+    });
+    return { created: true, email };
+  } catch (error) {
+    if (error?.code !== 11000) throw error;
+    const existingAfterConflict = await Admin.findOne({})
+      .select("_id email")
+      .lean();
+    if (!existingAfterConflict) throw error;
+    return { created: false, email: existingAfterConflict.email };
+  }
 }
 
-export { adminSeedConfig, seedInitialAdmin };
+export { seedInitialAdmin };
